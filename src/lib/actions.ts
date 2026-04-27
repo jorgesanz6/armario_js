@@ -70,6 +70,12 @@ export async function getPrenda(id: number) {
   });
 }
 
+function parseId(value: string | File | null): number | null {
+  if (!value || value === "") return null;
+  const n = Number(value);
+  return n > 0 ? n : null;
+}
+
 export async function crearPrenda(formData: FormData): Promise<ActionResult> {
   try {
     const imagenFile = formData.get("imagen") as File | null;
@@ -88,23 +94,24 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
       return { success: false, error: "La imagen es obligatoria" };
     }
 
+    const idTipo = parseId(formData.get("idTipo"));
+    const idMarca = parseId(formData.get("idMarca"));
+    const idUbicacion = parseId(formData.get("idUbicacion"));
+    const idColorPrincipal = parseId(formData.get("idColorPrincipal"));
+
+    if (!idTipo || !idMarca || !idUbicacion || !idColorPrincipal) {
+      return { success: false, error: "Faltan campos obligatorios (tipo, marca, ubicación, color principal)" };
+    }
+
     const data = {
-      idTipo: Number(formData.get("idTipo")),
-      idCorte: formData.get("idCorte")
-        ? Number(formData.get("idCorte"))
-        : null,
-      idTejido: formData.get("idTejido")
-        ? Number(formData.get("idTejido"))
-        : null,
-      idMarca: Number(formData.get("idMarca")),
-      idUbicacion: Number(formData.get("idUbicacion")),
-      idEstampado: formData.get("idEstampado")
-        ? Number(formData.get("idEstampado"))
-        : null,
-      idColorPrincipal: Number(formData.get("idColorPrincipal")),
-      idColorSecundario: formData.get("idColorSecundario")
-        ? Number(formData.get("idColorSecundario"))
-        : null,
+      idTipo,
+      idCorte: parseId(formData.get("idCorte")),
+      idTejido: parseId(formData.get("idTejido")),
+      idMarca,
+      idUbicacion,
+      idEstampado: parseId(formData.get("idEstampado")),
+      idColorPrincipal,
+      idColorSecundario: parseId(formData.get("idColorSecundario")),
       urlImagen: finalUrl,
       detalles: (formData.get("detalles") as string) || null,
     };
@@ -132,22 +139,14 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
     }
 
     const data = {
-      idTipo: Number(formData.get("idTipo")),
-      idCorte: formData.get("idCorte")
-        ? Number(formData.get("idCorte"))
-        : null,
-      idTejido: formData.get("idTejido")
-        ? Number(formData.get("idTejido"))
-        : null,
-      idMarca: Number(formData.get("idMarca")),
-      idUbicacion: Number(formData.get("idUbicacion")),
-      idEstampado: formData.get("idEstampado")
-        ? Number(formData.get("idEstampado"))
-        : null,
-      idColorPrincipal: Number(formData.get("idColorPrincipal")),
-      idColorSecundario: formData.get("idColorSecundario")
-        ? Number(formData.get("idColorSecundario"))
-        : null,
+      idTipo: parseId(formData.get("idTipo"))!,
+      idCorte: parseId(formData.get("idCorte")),
+      idTejido: parseId(formData.get("idTejido")),
+      idMarca: parseId(formData.get("idMarca"))!,
+      idUbicacion: parseId(formData.get("idUbicacion"))!,
+      idEstampado: parseId(formData.get("idEstampado")),
+      idColorPrincipal: parseId(formData.get("idColorPrincipal"))!,
+      idColorSecundario: parseId(formData.get("idColorSecundario")),
       urlImagen,
       detalles: (formData.get("detalles") as string) || null,
     };
