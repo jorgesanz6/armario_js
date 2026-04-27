@@ -87,8 +87,8 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
     if (imagenFile && imagenFile.size > 0) {
       const blob = await put(imagenFile.name, imagenFile, {
         access: "private",
+        addRandomSuffix: true,
       });
-      finalUrl = toProxyUrl(blob.url);
     }
 
     const idTipo = parseId(formData.get("idTipo"));
@@ -131,6 +131,7 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
     if (imagenFile && imagenFile.size > 0) {
       const blob = await put(imagenFile.name, imagenFile, {
         access: "private",
+        addRandomSuffix: true,
       });
       urlImagen = toProxyUrl(blob.url);
     }
