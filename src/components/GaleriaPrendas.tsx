@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition, useRef, useCallback } from "react";
+import { useState, useTransition, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import FormularioPrenda, { type PrendaExistente } from "./FormularioPrenda";
 import { moverPrenda, eliminarPrenda } from "@/lib/actions";
 import type { DashboardData } from "@/lib/actions";
@@ -9,6 +10,7 @@ import { agregarDimension, eliminarDimension } from "@/lib/actions";
 
 type Prenda = PrendaExistente;
 type DimensionTable = "tipos" | "cortes" | "colores" | "estampados" | "tejidos" | "marcas" | "ubicaciones";
+type SortBy = "reciente" | "marca" | "tipo";
 
 type Dimensiones = {
   tipos: { id: number; nombre: string }[];
@@ -77,9 +79,11 @@ function DetallePrenda({
   );
 }
 
-function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo }: {
+function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo, sortBy, setSortBy, onExport }: {
   dimensiones: Dimensiones; dashboard: DashboardData; onClose: () => void;
   filtroTipo: number | null; setFiltroTipo: (id: number | null) => void;
+  sortBy: SortBy; setSortBy: (s: SortBy) => void;
+  onExport: () => void;
 }) {
   const [section, setSection] = useState<"dashboard" | "gestion" | null>(null);
   const [dimTable, setDimTable] = useState<DimensionTable>("tipos");
@@ -91,6 +95,11 @@ function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo }:
     tejidos: "Tejidos", marcas: "Marcas", ubicaciones: "Ubicaciones",
   };
   const currentItems = dimensiones[dimTable];
+  const sortOptions: { value: SortBy; label: string }[] = [
+    { value: "reciente", label: "Reciente" },
+    { value: "tipo", label: "Tipo" },
+    { value: "marca", label: "Marca" },
+  ];
 
   function handleAdd() {
     if (!newNombre.trim()) return;
@@ -106,6 +115,18 @@ function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo }:
         <div className="flex items-center justify-between border-b border-border p-4">
           <h2 className="text-base font-bold text-card-foreground">Menu</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl">x</button>
+        </div>
+
+        <div className="border-b border-border p-4">
+          <h3 className="mb-2 text-sm font-semibold text-card-foreground">Ordenar por</h3>
+          <div className="flex gap-1">
+            {sortOptions.map((opt) => (
+              <button key={opt.value} onClick={() => { setSortBy(opt.value); onClose(); }}
+                className={`rounded px-2 py-0.5 text-xs ${sortBy === opt.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="border-b border-border p-4">
@@ -140,6 +161,16 @@ function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo }:
               {Object.keys(dashboard).length === 0 && <p className="text-xs text-muted-foreground">Sin datos</p>}
             </div>
           )}
+        </div>
+
+        <div className="border-b border-border p-4">
+          <button onClick={onExport}
+            className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-card-foreground hover:bg-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+              <path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v11.69l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.5 4.5a.75.75 0 0 1-1.06 0l-4.5-4.5a.75.75 0 1 1 1.06-1.06l3.22 3.22V3a.75.75 0 0 1 .75-.75Zm-9 15a.75.75 0 0 1 .75.75v2.25h14.25v-2.25a.75.75 0 0 1 1.5 0v2.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-2.25a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" />
+            </svg>
+            Exportar CSV
+          </button>
         </div>
 
         <div className="p-4">
@@ -180,10 +211,11 @@ function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo }:
   );
 }
 
-function PrendaCard({ prenda, destinoId, onMover, onOpenDetail }: {
+function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
   prenda: Prenda; destinoId: number;
   onMover: (id: number, destinoId: number) => void;
   onOpenDetail: (p: Prenda) => void;
+  isTransit?: boolean;
 }) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
@@ -214,10 +246,19 @@ function PrendaCard({ prenda, destinoId, onMover, onOpenDetail }: {
       onMouseDown={startPress}
       onMouseUp={endPress}
       onMouseLeave={endPress}
-      className="w-full flex items-center justify-between rounded-lg bg-card border border-border px-3 py-2.5 text-left shadow-sm active:scale-[0.98] transition-transform select-none"
+      className={`w-full flex items-center justify-between rounded-lg bg-card border px-3 py-2.5 text-left shadow-sm active:scale-[0.98] transition-transform select-none ${
+        isTransit ? "border-dashed border-amber-400 dark:border-amber-600" : "border-border"
+      }`}
     >
-      <span className="text-sm font-medium text-card-foreground">{prenda.tipo.nombre}</span>
-      <span className="text-xs text-muted-foreground">{prenda.marca.nombre}</span>
+      <div className="flex items-center gap-1.5 min-w-0">
+        {prenda.urlImagen && (
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-3 w-3 shrink-0 text-primary/60">
+            <path d="m1.5 1.5 21 21m-2.1-5.56L15.75 9.3V5.25a.75.75 0 0 0-.75-.75H9.75a.75.75 0 0 0-.75.75v.005L5.06 1.32A.75.75 0 0 1 5.25 1.5h13.5a.75.75 0 0 1 .75.75v13.5c0 .14-.04.278-.1.39ZM3.68 5.32 1.5 3.14m0 0L3.68 5.32m0 0a.75.75 0 0 0-.18.48v13.5a.75.75 0 0 0 .75.75h13.5c.18 0 .344-.063.473-.168M1.5 3.14l2.18 2.18" />
+          </svg>
+        )}
+        <span className="text-sm font-medium text-card-foreground truncate">{prenda.tipo.nombre}</span>
+      </div>
+      <span className="text-xs text-muted-foreground shrink-0">{prenda.marca.nombre}</span>
     </button>
   );
 }
@@ -231,7 +272,13 @@ export default function GaleriaPrendas({
   const [showSidebar, setShowSidebar] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState<number | null>(null);
   const [preselectedUbicacion, setPreselectedUbicacion] = useState<number>(madridId);
+  const [searchText, setSearchText] = useState("");
+  const [sortBy, setSortBy] = useState<SortBy>("reciente");
+  const [pullRefreshing, setPullRefreshing] = useState(false);
   const [, startTransition] = useTransition();
+  const router = useRouter();
+  const mainRef = useRef<HTMLElement>(null);
+  const touchStartY = useRef(0);
 
   function handleMover(id: number, destinoId: number) {
     startTransition(async () => { await moverPrenda(id, destinoId); });
@@ -240,15 +287,82 @@ export default function GaleriaPrendas({
     startTransition(async () => { await eliminarPrenda(id); });
   }
 
-  function filterList(prendas: Prenda[]) {
-    if (!filtroTipo) return prendas;
-    return prendas.filter((p) => p.idTipo === filtroTipo);
+  function filterAndSort(prendas: Prenda[]) {
+    let result = prendas;
+    if (filtroTipo) result = result.filter((p) => p.idTipo === filtroTipo);
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      result = result.filter((p) =>
+        p.tipo.nombre.toLowerCase().includes(q) || p.marca.nombre.toLowerCase().includes(q)
+      );
+    }
+    const sorted = [...result];
+    switch (sortBy) {
+      case "marca":
+        sorted.sort((a, b) => a.marca.nombre.localeCompare(b.marca.nombre));
+        break;
+      case "tipo":
+        sorted.sort((a, b) => a.tipo.nombre.localeCompare(b.tipo.nombre));
+        break;
+      default:
+        break;
+    }
+    return sorted;
   }
 
-  const madrid = filterList(prendasMadrid);
-  const valladolid = filterList(prendasValladolid);
-  const transito = filterList(prendasTransito);
+  const madrid = filterAndSort(prendasMadrid);
+  const valladolid = filterAndSort(prendasValladolid);
+  const transito = filterAndSort(prendasTransito);
   const filtroNombre = filtroTipo ? dimensiones.tipos.find((t) => t.id === filtroTipo)?.nombre : null;
+
+  // Pull-to-refresh
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const getEl = () => mainRef.current;
+    function onTouchStart(e: TouchEvent) {
+      const m = getEl();
+      if (m && m.scrollTop === 0) touchStartY.current = e.touches[0].clientY;
+    }
+    function onTouchEnd(e: TouchEvent) {
+      if (pullRefreshing) return;
+      const m = getEl();
+      const diff = e.changedTouches[0].clientY - touchStartY.current;
+      if (m && diff > 80 && m.scrollTop === 0) {
+        setPullRefreshing(true);
+        router.refresh();
+        setTimeout(() => setPullRefreshing(false), 1200);
+      }
+    }
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [pullRefreshing, router]);
+
+  // Export CSV
+  function exportCSV() {
+    const all = [...prendasMadrid, ...prendasValladolid, ...prendasTransito];
+    const header = "Tipo,Marca,Color,Corte,Tejido,Estampado,Ubicacion,Detalles";
+    const rows = all.map((p) =>
+      [
+        p.tipo.nombre, p.marca.nombre, p.colorPrincipal.nombre,
+        p.corte?.nombre ?? "", p.tejido?.nombre ?? "",
+        p.estampado?.nombre ?? "", p.ubicacion.nombre,
+        `"${p.detalles?.replace(/"/g, '""') ?? ""}"`,
+      ].join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `armario_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function toggleDark() {
     const html = document.documentElement;
@@ -290,9 +404,36 @@ export default function GaleriaPrendas({
             </button>
           </div>
         </div>
+        {/* Search bar */}
+        <div className="mx-auto max-w-5xl px-4 pb-2">
+          <div className="relative">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground">
+              <path fillRule="evenodd" d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z" clipRule="evenodd" />
+            </svg>
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Buscar tipo o marca..."
+              className="w-full rounded-lg border border-border bg-background pl-9 pr-8 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+            />
+            {searchText && (
+              <button onClick={() => setSearchText("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs">x</button>
+            )}
+          </div>
+        </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-4">
+      <main ref={mainRef} className="mx-auto max-w-5xl px-4 py-4">
+        {/* Pull-to-refresh indicator */}
+        {pullRefreshing && (
+          <div className="flex items-center justify-center py-2 text-xs text-muted-foreground animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 mr-1 animate-spin">
+              <path fillRule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.926.521 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.909Z" clipRule="evenodd" />
+            </svg>
+            Actualizando...
+          </div>
+        )}
         <p className="mb-3 text-xs text-muted-foreground">Toca para mover · Deja pulsado para ver detalle</p>
         <div className="grid grid-cols-2 gap-3">
           <section>
@@ -331,13 +472,13 @@ export default function GaleriaPrendas({
         {transito.length > 0 && (
           <section className="mt-6">
             <div className="mb-3 flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-amber-500" />
+              <div className="h-3 w-3 rounded-full bg-amber-500 animate-pulse" />
               <h2 className="text-base font-semibold text-foreground">En transito</h2>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{transito.length}</span>
             </div>
             <div className="space-y-1.5">
               {transito.map((p) => (
-                <PrendaCard key={p.id} prenda={p} destinoId={madridId} onMover={handleMover} onOpenDetail={setDetallePrenda} />
+                <PrendaCard key={p.id} prenda={p} destinoId={madridId} onMover={handleMover} onOpenDetail={setDetallePrenda} isTransit />
               ))}
             </div>
           </section>
@@ -354,7 +495,8 @@ export default function GaleriaPrendas({
       )}
       {showSidebar && (
         <Sidebar dimensiones={dimensiones} dashboard={dashboard} onClose={() => setShowSidebar(false)}
-          filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} />
+          filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo}
+          sortBy={sortBy} setSortBy={setSortBy} onExport={exportCSV} />
       )}
       {showForm && (
         <FormularioPrenda dimensiones={dimensiones} prenda={editPrenda} ubicacionId={editPrenda ? editPrenda.idUbicacion : preselectedUbicacion}
