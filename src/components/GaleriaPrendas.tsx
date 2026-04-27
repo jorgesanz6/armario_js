@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef, useCallback, useEffect, useMemo, memo } from "react";
+import React, { useState, useTransition, useRef, useCallback, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import FormularioPrenda, { type PrendaExistente } from "./FormularioPrenda";
@@ -92,7 +92,7 @@ function DetallePrenda({
   prenda, destinoId, destinoNombre, onMover, onEliminar, onEditar, onClose,
 }: {
   prenda: Prenda; destinoId: number; destinoNombre: string;
-  onMover: (id: number, destinoId: number) => Promise<void>;
+  onMover: (id: number, destinoId: number) => void;
   onEliminar: (id: number) => Promise<void>;
   onEditar: (p: Prenda) => void;
   onClose: () => void;
@@ -121,7 +121,7 @@ function DetallePrenda({
           {prenda.detalles && <p className="mt-2 text-sm text-muted-foreground">{prenda.detalles}</p>}
           <p className="mt-2 text-xs text-muted-foreground">Ubicacion: {prenda.ubicacion.nombre}</p>
           <div className="mt-4 flex gap-2">
-            <button onClick={() => startTransition(async () => { await onMover(prenda.id, destinoId); onClose(); })} disabled={isPending}
+            <button onClick={() => { onMover(prenda.id, destinoId); onClose(); }} disabled={isPending}
               className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
               Mover a {destinoNombre}
             </button>
@@ -269,7 +269,7 @@ function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo, s
 }
 
 // --- PrendaCard (memoized) ---
-const PrendaCard = memo(function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
+const PrendaCard = React.memo(function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
   prenda: Prenda; destinoId: number;
   onMover: (id: number, destinoId: number) => void;
   onOpenDetail: (p: Prenda) => void;
@@ -279,7 +279,8 @@ const PrendaCard = memo(function PrendaCard({ prenda, destinoId, onMover, onOpen
   const longPressTriggered = useRef(false);
   const pressStarted = useRef(false);
 
-  const startPress = useCallback(() => {
+  const startPress = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
     pressStarted.current = true;
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
@@ -299,15 +300,21 @@ const PrendaCard = memo(function PrendaCard({ prenda, destinoId, onMover, onOpen
     pressStarted.current = false;
   }, [prenda, destinoId, onMover]);
 
+  const cancelPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    pressStarted.current = false;
+  }, []);
+
   return (
     <button
-      onTouchStart={startPress}
-      onTouchEnd={endPress}
-      onTouchCancel={endPress}
-      onMouseDown={startPress}
-      onMouseUp={endPress}
-      onMouseLeave={endPress}
-      className={`w-full flex items-center justify-between rounded-lg bg-card border px-3 py-2.5 text-left shadow-sm active:scale-[0.98] transition-transform select-none ${
+      onPointerDown={startPress}
+      onPointerUp={endPress}
+      onPointerCancel={cancelPress}
+      onPointerLeave={cancelPress}
+      className={`w-full flex items-center justify-between rounded-lg bg-card border px-3 py-2.5 text-left shadow-sm active:scale-[0.98] transition-transform select-none touch-none ${
         isTransit ? "border-dashed border-amber-400 dark:border-amber-600" : "border-border"
       }`}
     >
@@ -340,7 +347,6 @@ export default function GaleriaPrendas({
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isPending, startTransition] = useTransition();
-  const [optimisticMovers, setOptimisticMovers] = useState<Map<number, number>>(new Map());
   const router = useRouter();
   const mainRef = useRef<HTMLElement>(null);
   const touchStartY = useRef(0);
@@ -368,16 +374,14 @@ export default function GaleriaPrendas({
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2500);
   }
 
+  const moveLockRef = useRef(0);
   async function handleMover(id: number, destinoId: number) {
-    setOptimisticMovers((prev) => new Map(prev).set(id, destinoId));
+    const now = Date.now();
+    if (now - moveLockRef.current < 500) return;
+    moveLockRef.current = now;
     startTransition(async () => {
       const result = await moverPrenda(id, destinoId);
-      setOptimisticMovers((prev) => { const m = new Map(prev); m.delete(id); return m; });
-      if (result.success) {
-        // silent success
-      } else {
-        addToast(result.error, "err");
-      }
+      if (!result.success) addToast(result.error, "err");
     });
   }
 
@@ -390,23 +394,6 @@ export default function GaleriaPrendas({
         addToast(result.error, "err");
       }
     });
-  }
-
-  // Apply optimistic moves to the lists
-  function applyOptimistic(prendas: Prenda[], targetUbicacion: number): Prenda[] {
-    const movedIn: Prenda[] = [];
-    for (const [id, destId] of optimisticMovers) {
-      if (destId === targetUbicacion) {
-        const p = prendasMadrid.find((x) => x.id === id) ??
-                  prendasValladolid.find((x) => x.id === id) ??
-                  prendasTransito.find((x) => x.id === id);
-        if (p) movedIn.push({ ...p, idUbicacion: destId, ubicacion: dimensiones.ubicaciones.find((u) => u.id === destId)! });
-      }
-    }
-    const movedOutIds = new Set(
-      [...optimisticMovers.entries()].filter(([, d]) => d !== targetUbicacion).map(([id]) => id)
-    );
-    return [...movedIn, ...prendas.filter((p) => !movedOutIds.has(p.id) && !optimisticMovers.has(p.id))];
   }
 
   function filterAndSort(prendas: Prenda[]) {
@@ -432,12 +419,12 @@ export default function GaleriaPrendas({
     return sorted;
   }
 
-  const madrid = useMemo(() => filterAndSort(applyOptimistic(prendasMadrid, madridId)),
-    [prendasMadrid, madridId, filtroTipo, searchText, sortBy, optimisticMovers]);
-  const valladolid = useMemo(() => filterAndSort(applyOptimistic(prendasValladolid, valladolidId)),
-    [prendasValladolid, valladolidId, filtroTipo, searchText, sortBy, optimisticMovers]);
-  const transito = useMemo(() => filterAndSort(applyOptimistic(prendasTransito, -1)),
-    [prendasTransito, filtroTipo, searchText, sortBy, optimisticMovers]);
+  const madrid = useMemo(() => filterAndSort(prendasMadrid),
+    [prendasMadrid, filtroTipo, searchText, sortBy]);
+  const valladolid = useMemo(() => filterAndSort(prendasValladolid),
+    [prendasValladolid, filtroTipo, searchText, sortBy]);
+  const transito = useMemo(() => filterAndSort(prendasTransito),
+    [prendasTransito, filtroTipo, searchText, sortBy]);
   const filtroNombre = filtroTipo ? dimensiones.tipos.find((t) => t.id === filtroTipo)?.nombre : null;
 
   // Pull-to-refresh
