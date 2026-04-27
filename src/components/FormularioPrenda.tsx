@@ -175,32 +175,32 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
   }
 
   const selectClass =
-    "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none";
+    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-foreground";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <form
         action={handleSubmit}
-        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-card p-6 shadow-xl"
       >
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <h2 className="mb-4 text-lg font-semibold text-card-foreground">
           {prenda ? "Editar prenda" : "Nueva prenda"}
         </h2>
 
         {errorMsg && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-400">
             {errorMsg}
           </div>
         )}
 
         {/* Imagen */}
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-card-foreground">
             Foto de la prenda
           </label>
           {urlImagen && (
             <div className="mb-2">
-              <img src={urlImagen} alt="Preview" className="h-24 w-24 rounded-lg object-cover border border-gray-200" />
+              <img src={urlImagen} alt="Preview" className="h-24 w-24 rounded-lg object-cover border border-border" />
             </div>
           )}
           <div className="flex gap-2">
@@ -212,7 +212,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
                   fileRef.current.click();
                 }
               }}
-              className="flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
                 <path fillRule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" />
@@ -227,7 +227,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
                   fileRef.current.click();
                 }
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-card-foreground hover:bg-muted"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
                 <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.5V6h18v10.5l-4.5-3-4.5 4.5-4.5-3-4.5 3Z" clipRule="evenodd" />
@@ -248,7 +248,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
 
         {/* Tipo */}
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-card-foreground">
             Tipo de prenda *
           </label>
           <select
@@ -270,7 +270,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
         {/* Corte */}
         {showCorte && (
           <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-card-foreground">
               Corte *
             </label>
             <select
@@ -293,7 +293,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
         {/* Tejido */}
         {showTejido && (
           <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-card-foreground">
               Tejido *
             </label>
             <select
@@ -316,7 +316,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
         {/* Estampado */}
         {showEstampado && (
           <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-card-foreground">
               Estampado *
             </label>
             <select
@@ -340,7 +340,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
 
         {/* Color Principal */}
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-card-foreground">
             Color principal *
           </label>
           <select
@@ -362,7 +362,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
         {/* Color Secundario */}
         {showColorSecundario && (
           <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-card-foreground">
               Color secundario *
             </label>
             <select
@@ -386,7 +386,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
 
         {/* Marca */}
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-card-foreground">
             Marca *
           </label>
           <select
@@ -407,7 +407,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
 
         {/* Ubicación */}
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-card-foreground">
             Ubicación *
           </label>
           <select
@@ -428,7 +428,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
 
         {/* Detalles */}
         <div className="mb-4">
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-card-foreground">
             Detalles
           </label>
           <textarea
@@ -436,7 +436,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
             value={detalles}
             onChange={(e) => setDetalles(e.target.value)}
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-foreground"
             placeholder="Notas opcionales..."
           />
         </div>
@@ -453,14 +453,14 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
           <button
             type="submit"
             disabled={isPending}
-            className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {isPending ? "Guardando..." : prenda ? "Guardar cambios" : "Crear prenda"}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+            className="flex-1 rounded-lg bg-muted px-4 py-2 text-sm font-medium text-card-foreground hover:opacity-90"
           >
             Cancelar
           </button>
