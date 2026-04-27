@@ -32,7 +32,7 @@ export interface PrendaExistente {
   idEstampado: number | null;
   idColorPrincipal: number;
   idColorSecundario: number | null;
-  urlImagen: string;
+  urlImagen: string | null;
   detalles: string | null;
   tipo: { id: number; nombre: string };
   corte: { id: number; nombre: string } | null;
@@ -196,7 +196,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
         {/* Imagen */}
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            Foto de la prenda {!prenda && "*"}
+            Foto de la prenda
           </label>
           {urlImagen && (
             <div className="mb-2">

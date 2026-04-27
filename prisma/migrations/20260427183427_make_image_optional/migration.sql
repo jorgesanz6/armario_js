@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "F_Prendas" ALTER COLUMN "URL_Imagen" DROP NOT NULL;

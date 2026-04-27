@@ -1,12 +1,13 @@
-import { getPrendas, getDimensiones } from "@/lib/actions";
+import { getPrendas, getDimensiones, getDashboard } from "@/lib/actions";
 import GaleriaPrendas from "@/components/GaleriaPrendas";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [prendas, dimensiones] = await Promise.all([
+  const [prendas, dimensiones, dashboard] = await Promise.all([
     getPrendas(),
     getDimensiones(),
+    getDashboard(),
   ]);
 
   const madridId = dimensiones.ubicaciones.find((u) => u.nombre === "Madrid")!.id;
@@ -26,6 +27,7 @@ export default async function Home() {
       prendasTransito={prendasTransito}
       madridId={madridId}
       valladolidId={valladolidId}
+      dashboard={dashboard}
     />
   );
 }

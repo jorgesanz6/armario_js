@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export type ActionResult = { success: true } | { success: false; error: string };
+export type DashboardData = Record<string, Record<string, number>>;
 
 function toProxyUrl(blobUrl: string): string {
   // Convert blob URL to our proxy route: /api/imagen/[pathname]
@@ -90,10 +91,6 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
       finalUrl = toProxyUrl(blob.url);
     }
 
-    if (!finalUrl) {
-      return { success: false, error: "La imagen es obligatoria" };
-    }
-
     const idTipo = parseId(formData.get("idTipo"));
     const idMarca = parseId(formData.get("idMarca"));
     const idUbicacion = parseId(formData.get("idUbicacion"));
@@ -112,7 +109,7 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
       idEstampado: parseId(formData.get("idEstampado")),
       idColorPrincipal,
       idColorSecundario: parseId(formData.get("idColorSecundario")),
-      urlImagen: finalUrl,
+      urlImagen: finalUrl || null,
       detalles: (formData.get("detalles") as string) || null,
     };
 
@@ -183,4 +180,63 @@ export async function moverPrenda(id: number, idUbicacion: number): Promise<Acti
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
+}
+
+// --- Dimension CRUD ---
+
+export async function agregarDimension(tabla: string, nombre: string): Promise<ActionResult> {
+  try {
+    switch (tabla) {
+      case "tipos": await prisma.dimTipoPrenda.create({ data: { nombre } }); break;
+      case "cortes": await prisma.dimCorte.create({ data: { nombre } }); break;
+      case "colores": await prisma.dimColor.create({ data: { nombre } }); break;
+      case "estampados": await prisma.dimEstampado.create({ data: { nombre } }); break;
+      case "tejidos": await prisma.dimTejido.create({ data: { nombre } }); break;
+      case "marcas": await prisma.dimMarca.create({ data: { nombre } }); break;
+      case "ubicaciones": await prisma.dimUbicacion.create({ data: { nombre } }); break;
+      default: return { success: false, error: "Tabla desconocida" };
+    }
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
+  }
+}
+
+export async function eliminarDimension(tabla: string, id: number): Promise<ActionResult> {
+  try {
+    switch (tabla) {
+      case "tipos": await prisma.dimTipoPrenda.delete({ where: { id } }); break;
+      case "cortes": await prisma.dimCorte.delete({ where: { id } }); break;
+      case "colores": await prisma.dimColor.delete({ where: { id } }); break;
+      case "estampados": await prisma.dimEstampado.delete({ where: { id } }); break;
+      case "tejidos": await prisma.dimTejido.delete({ where: { id } }); break;
+      case "marcas": await prisma.dimMarca.delete({ where: { id } }); break;
+      case "ubicaciones": await prisma.dimUbicacion.delete({ where: { id } }); break;
+      default: return { success: false, error: "Tabla desconocida" };
+    }
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
+  }
+}
+
+// --- Dashboard ---
+
+export async function getDashboard() {
+  const prendas = await prisma.fPrenda.findMany({
+    select: { idTipo: true, idUbicacion: true, tipo: { select: { nombre: true } }, ubicacion: { select: { nombre: true } } },
+  });
+
+  const data: DashboardData = {};
+  for (const p of prendas) {
+    const tipo = p.tipo.nombre;
+    const ubi = p.ubicacion.nombre;
+    if (!data[tipo]) data[tipo] = {};
+    data[tipo][ubi] = (data[tipo][ubi] || 0) + 1;
+  }
+  return data;
 }
