@@ -114,8 +114,51 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
     }
   }
 
+  async function compressImage(file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<File> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { type: "image/jpeg" }));
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function handleSubmit(formData: FormData) {
     setErrorMsg(null);
+
+    // Compress image before submitting
+    const imageFile = formData.get("imagen") as File | null;
+    if (imageFile && imageFile.size > 0) {
+      try {
+        const compressed = await compressImage(imageFile);
+        formData.set("imagen", compressed);
+      } catch {
+        // If compression fails, send original
+      }
+    }
+
     startTransition(async () => {
       let result: ActionResult;
       if (prenda) {
