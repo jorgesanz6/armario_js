@@ -219,8 +219,10 @@ function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
 }) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
+  const pressStarted = useRef(false);
 
   const startPress = useCallback(() => {
+    pressStarted.current = true;
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
@@ -233,9 +235,10 @@ function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    if (!longPressTriggered.current) {
+    if (pressStarted.current && !longPressTriggered.current) {
       onMover(prenda.id, destinoId);
     }
+    pressStarted.current = false;
   }, [prenda, destinoId, onMover]);
 
   return (
