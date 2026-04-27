@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef, useCallback, useEffect } from "react";
+import { useState, useTransition, useRef, useCallback, useEffect, useMemo, memo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import FormularioPrenda, { type PrendaExistente } from "./FormularioPrenda";
@@ -11,6 +11,11 @@ import { agregarDimension, eliminarDimension } from "@/lib/actions";
 type Prenda = PrendaExistente;
 type DimensionTable = "tipos" | "cortes" | "colores" | "estampados" | "tejidos" | "marcas" | "ubicaciones";
 type SortBy = "reciente" | "marca" | "tipo";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 type Dimensiones = {
   tipos: { id: number; nombre: string }[];
@@ -32,12 +37,63 @@ interface Props {
   dashboard: DashboardData;
 }
 
+// --- Toast ---
+type Toast = { id: number; msg: string; type: "ok" | "err" };
+let toastCounter = 0;
+
+function ToastContainer({ toasts }: { toasts: Toast[] }) {
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-2 items-center pointer-events-none">
+      {toasts.map((t) => (
+        <div key={t.id} className={`rounded-lg px-4 py-2 text-sm font-medium shadow-lg transition-opacity animate-in fade-in ${
+          t.type === "ok" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+        }`}>{t.msg}</div>
+      ))}
+    </div>
+  );
+}
+
+// --- Loading skeleton ---
+function Skeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/90">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <div className="h-6 w-24 rounded bg-muted animate-pulse" />
+          <div className="h-6 w-6 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="mx-auto max-w-5xl px-4 pb-2">
+          <div className="h-8 w-full rounded-lg bg-muted animate-pulse" />
+        </div>
+      </header>
+      <main className="mx-auto max-w-5xl px-4 py-4">
+        <div className="grid grid-cols-2 gap-3">
+          {["Madrid", "Valladolid"].map((city) => (
+            <section key={city}>
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-muted animate-pulse" />
+                <div className="h-5 w-20 rounded bg-muted animate-pulse" />
+              </div>
+              <div className="space-y-1.5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-10 w-full rounded-lg bg-muted animate-pulse" />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// --- DetallePrenda ---
 function DetallePrenda({
   prenda, destinoId, destinoNombre, onMover, onEliminar, onEditar, onClose,
 }: {
   prenda: Prenda; destinoId: number; destinoNombre: string;
-  onMover: (id: number, destinoId: number) => void;
-  onEliminar: (id: number) => void;
+  onMover: (id: number, destinoId: number) => Promise<void>;
+  onEliminar: (id: number) => Promise<void>;
   onEditar: (p: Prenda) => void;
   onClose: () => void;
 }) {
@@ -65,12 +121,12 @@ function DetallePrenda({
           {prenda.detalles && <p className="mt-2 text-sm text-muted-foreground">{prenda.detalles}</p>}
           <p className="mt-2 text-xs text-muted-foreground">Ubicacion: {prenda.ubicacion.nombre}</p>
           <div className="mt-4 flex gap-2">
-            <button onClick={() => startTransition(async () => { await onMover(prenda.id, destinoId); })} disabled={isPending}
+            <button onClick={() => startTransition(async () => { await onMover(prenda.id, destinoId); onClose(); })} disabled={isPending}
               className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
               Mover a {destinoNombre}
             </button>
             <button onClick={() => onEditar(prenda)} className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-600">Editar</button>
-            <button onClick={() => { if (confirm("Eliminar?")) startTransition(async () => { await onEliminar(prenda.id); }); }} disabled={isPending}
+            <button onClick={() => { if (confirm("Eliminar?")) startTransition(async () => { await onEliminar(prenda.id); onClose(); }); }} disabled={isPending}
               className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">X</button>
           </div>
         </div>
@@ -79,6 +135,7 @@ function DetallePrenda({
   );
 }
 
+// --- Sidebar ---
 function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo, sortBy, setSortBy, onExport }: {
   dimensiones: Dimensiones; dashboard: DashboardData; onClose: () => void;
   filtroTipo: number | null; setFiltroTipo: (id: number | null) => void;
@@ -211,7 +268,8 @@ function Sidebar({ dimensiones, dashboard, onClose, filtroTipo, setFiltroTipo, s
   );
 }
 
-function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
+// --- PrendaCard (memoized) ---
+const PrendaCard = memo(function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
   prenda: Prenda; destinoId: number;
   onMover: (id: number, destinoId: number) => void;
   onOpenDetail: (p: Prenda) => void;
@@ -264,11 +322,13 @@ function PrendaCard({ prenda, destinoId, onMover, onOpenDetail, isTransit }: {
       <span className="text-xs text-muted-foreground shrink-0">{prenda.marca.nombre}</span>
     </button>
   );
-}
+});
 
+// --- Main component ---
 export default function GaleriaPrendas({
   dimensiones, prendasMadrid, prendasValladolid, prendasTransito, madridId, valladolidId, dashboard,
 }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editPrenda, setEditPrenda] = useState<Prenda | null>(null);
   const [detallePrenda, setDetallePrenda] = useState<Prenda | null>(null);
@@ -278,16 +338,78 @@ export default function GaleriaPrendas({
   const [searchText, setSearchText] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("reciente");
   const [pullRefreshing, setPullRefreshing] = useState(false);
-  const [, startTransition] = useTransition();
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [optimisticMovers, setOptimisticMovers] = useState<Map<number, number>>(new Map());
   const router = useRouter();
   const mainRef = useRef<HTMLElement>(null);
   const touchStartY = useRef(0);
 
-  function handleMover(id: number, destinoId: number) {
-    startTransition(async () => { await moverPrenda(id, destinoId); });
+  // PWA install prompt
+  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstall, setShowInstall] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    function handler(e: Event) {
+      e.preventDefault();
+      setInstallEvent(e as BeforeInstallPromptEvent);
+      const dismissed = localStorage.getItem("install_dismissed");
+      if (!dismissed) setShowInstall(true);
+    }
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  // Hydration guard — show skeleton until client mounts
+  if (!mounted) return <Skeleton />;
+
+  function addToast(msg: string, type: "ok" | "err" = "ok") {
+    const id = ++toastCounter;
+    setToasts((prev) => [...prev.slice(-2), { id, msg, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2500);
   }
-  function handleEliminar(id: number) {
-    startTransition(async () => { await eliminarPrenda(id); });
+
+  async function handleMover(id: number, destinoId: number) {
+    setOptimisticMovers((prev) => new Map(prev).set(id, destinoId));
+    startTransition(async () => {
+      const result = await moverPrenda(id, destinoId);
+      setOptimisticMovers((prev) => { const m = new Map(prev); m.delete(id); return m; });
+      if (result.success) {
+        addToast("Movido");
+      } else {
+        addToast(result.error, "err");
+      }
+    });
+  }
+
+  async function handleEliminar(id: number) {
+    startTransition(async () => {
+      const result = await eliminarPrenda(id);
+      if (result.success) {
+        addToast("Eliminado");
+      } else {
+        addToast(result.error, "err");
+      }
+    });
+  }
+
+  // Apply optimistic moves to the lists
+  function applyOptimistic(prendas: Prenda[], targetUbicacion: number): Prenda[] {
+    const movedIn: Prenda[] = [];
+    for (const [id, destId] of optimisticMovers) {
+      if (destId === targetUbicacion) {
+        const p = prendasMadrid.find((x) => x.id === id) ??
+                  prendasValladolid.find((x) => x.id === id) ??
+                  prendasTransito.find((x) => x.id === id);
+        if (p) movedIn.push({ ...p, idUbicacion: destId, ubicacion: dimensiones.ubicaciones.find((u) => u.id === destId)! });
+      }
+    }
+    const movedOutIds = new Set(
+      [...optimisticMovers.entries()].filter(([, d]) => d !== targetUbicacion).map(([id]) => id)
+    );
+    return [...movedIn, ...prendas.filter((p) => !movedOutIds.has(p.id) && !optimisticMovers.has(p.id))];
   }
 
   function filterAndSort(prendas: Prenda[]) {
@@ -313,9 +435,12 @@ export default function GaleriaPrendas({
     return sorted;
   }
 
-  const madrid = filterAndSort(prendasMadrid);
-  const valladolid = filterAndSort(prendasValladolid);
-  const transito = filterAndSort(prendasTransito);
+  const madrid = useMemo(() => filterAndSort(applyOptimistic(prendasMadrid, madridId)),
+    [prendasMadrid, madridId, filtroTipo, searchText, sortBy, optimisticMovers]);
+  const valladolid = useMemo(() => filterAndSort(applyOptimistic(prendasValladolid, valladolidId)),
+    [prendasValladolid, valladolidId, filtroTipo, searchText, sortBy, optimisticMovers]);
+  const transito = useMemo(() => filterAndSort(applyOptimistic(prendasTransito, -1)),
+    [prendasTransito, filtroTipo, searchText, sortBy, optimisticMovers]);
   const filtroNombre = filtroTipo ? dimensiones.tipos.find((t) => t.id === filtroTipo)?.nombre : null;
 
   // Pull-to-refresh
@@ -328,7 +453,7 @@ export default function GaleriaPrendas({
       if (m && m.scrollTop === 0) touchStartY.current = e.touches[0].clientY;
     }
     function onTouchEnd(e: TouchEvent) {
-      if (pullRefreshing) return;
+      if (pullRefreshing || isPending) return;
       const m = getEl();
       const diff = e.changedTouches[0].clientY - touchStartY.current;
       if (m && diff > 80 && m.scrollTop === 0) {
@@ -343,9 +468,8 @@ export default function GaleriaPrendas({
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchend", onTouchEnd);
     };
-  }, [pullRefreshing, router]);
+  }, [pullRefreshing, isPending, router]);
 
-  // Export CSV
   function exportCSV() {
     const all = [...prendasMadrid, ...prendasValladolid, ...prendasTransito];
     const header = "Tipo,Marca,Color,Corte,Tejido,Estampado,Ubicacion,Detalles";
@@ -378,6 +502,15 @@ export default function GaleriaPrendas({
     }
   }
 
+  function handleInstall() {
+    if (!installEvent) return;
+    installEvent.prompt();
+    installEvent.userChoice.then(() => {
+      setInstallEvent(null);
+      setShowInstall(false);
+    });
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur">
@@ -396,6 +529,11 @@ export default function GaleriaPrendas({
                 {filtroNombre}
                 <button onClick={() => setFiltroTipo(null)} className="ml-1 opacity-60 hover:opacity-100">x</button>
               </span>
+            )}
+            {isPending && (
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-primary animate-spin">
+                <path fillRule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.926.521 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.909Z" clipRule="evenodd" />
+              </svg>
             )}
             <button onClick={toggleDark} className="rounded-lg p-1.5 hover:bg-muted" title="Modo oscuro">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-foreground dark:hidden">
@@ -426,6 +564,19 @@ export default function GaleriaPrendas({
           </div>
         </div>
       </header>
+
+      {/* PWA Install banner */}
+      {showInstall && (
+        <div className="mx-auto max-w-5xl px-4 py-2">
+          <div className="flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20 px-4 py-2">
+            <span className="text-sm text-primary">Instalar Armario en tu dispositivo</span>
+            <div className="flex items-center gap-2">
+              <button onClick={handleInstall} className="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">Instalar</button>
+              <button onClick={() => { setShowInstall(false); localStorage.setItem("install_dismissed", "1"); }} className="text-muted-foreground hover:text-foreground text-xs">x</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main ref={mainRef} className="mx-auto max-w-5xl px-4 py-4">
         {/* Pull-to-refresh indicator */}
@@ -487,6 +638,8 @@ export default function GaleriaPrendas({
           </section>
         )}
       </main>
+
+      <ToastContainer toasts={toasts} />
 
       {detallePrenda && (
         <DetallePrenda prenda={detallePrenda}
