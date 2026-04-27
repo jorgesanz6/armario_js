@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: "Armario",
   description: "Gestión de inventario de ropa Madrid/Valladolid",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
