@@ -3,14 +3,21 @@
 import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAuth } from "@/lib/auth";
+import {
+  validateRequiredId,
+  validateOptionalId,
+  validateImage,
+  validateStringLength,
+  verifyIdExists,
+  MAX_DETALLES_LENGTH,
+  MAX_NOMBRE_LENGTH,
+} from "@/lib/validation";
 
 export type ActionResult = { success: true } | { success: false; error: string };
 export type DashboardData = Record<string, Record<string, number>>;
 
 function toProxyUrl(blobUrl: string): string {
-  // Convert blob URL to our proxy route: /api/imagen/[pathname]
-  // blobUrl = https://xxx.public.blob.vercel-storage.com/pathname
-  // or     = https://xxx.private.blob.vercel-storage.com/pathname
   try {
     const url = new URL(blobUrl);
     const pathname = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
@@ -71,52 +78,68 @@ export async function getPrenda(id: number) {
   });
 }
 
-function parseId(value: string | File | null): number | null {
-  if (!value || value === "") return null;
-  const n = Number(value);
-  return n > 0 ? n : null;
-}
-
 export async function crearPrenda(formData: FormData): Promise<ActionResult> {
   try {
+    await requireAuth();
+
     const imagenFile = formData.get("imagen") as File | null;
     const existingUrl = formData.get("urlImagen") as string | null;
-
     let finalUrl = existingUrl || "";
 
-    if (imagenFile && imagenFile.size > 0) {
-      const blob = await put(imagenFile.name, imagenFile, {
+    const errors: string[] = [];
+    const validatedImage = validateImage(imagenFile, errors);
+
+    if (validatedImage && validatedImage.size > 0) {
+      const blob = await put(validatedImage.name, validatedImage, {
         access: "private",
         addRandomSuffix: true,
       });
+      finalUrl = toProxyUrl(blob.url);
     }
 
-    const idTipo = parseId(formData.get("idTipo"));
-    const idMarca = parseId(formData.get("idMarca"));
-    const idUbicacion = parseId(formData.get("idUbicacion"));
-    const idColorPrincipal = parseId(formData.get("idColorPrincipal"));
+    const idTipo = validateRequiredId(formData.get("idTipo"), "Tipo", errors);
+    const idMarca = validateRequiredId(formData.get("idMarca"), "Marca", errors);
+    const idUbicacion = validateRequiredId(formData.get("idUbicacion"), "Ubicacion", errors);
+    const idColorPrincipal = validateRequiredId(formData.get("idColorPrincipal"), "Color principal", errors);
+    const idCorte = validateOptionalId(formData.get("idCorte"), "Corte", errors);
+    const idTejido = validateOptionalId(formData.get("idTejido"), "Tejido", errors);
+    const idEstampado = validateOptionalId(formData.get("idEstampado"), "Estampado", errors);
+    const idColorSecundario = validateOptionalId(formData.get("idColorSecundario"), "Color secundario", errors);
+    const detalles = validateStringLength(formData.get("detalles"), MAX_DETALLES_LENGTH, "Notas", errors);
 
-    if (!idTipo || !idMarca || !idUbicacion || !idColorPrincipal) {
-      return { success: false, error: "Faltan campos obligatorios (tipo, marca, ubicación, color principal)" };
+    await verifyIdExists(idTipo, prisma.dimTipoPrenda, "Tipo", errors);
+    await verifyIdExists(idMarca, prisma.dimMarca, "Marca", errors);
+    await verifyIdExists(idUbicacion, prisma.dimUbicacion, "Ubicacion", errors);
+    await verifyIdExists(idColorPrincipal, prisma.dimColor, "Color principal", errors);
+    await verifyIdExists(idCorte, prisma.dimCorte, "Corte", errors);
+    await verifyIdExists(idTejido, prisma.dimTejido, "Tejido", errors);
+    await verifyIdExists(idEstampado, prisma.dimEstampado, "Estampado", errors);
+    await verifyIdExists(idColorSecundario, prisma.dimColor, "Color secundario", errors);
+
+    if (errors.length > 0) {
+      return { success: false, error: errors.join(". ") };
     }
 
     const data = {
-      idTipo,
-      idCorte: parseId(formData.get("idCorte")),
-      idTejido: parseId(formData.get("idTejido")),
-      idMarca,
-      idUbicacion,
-      idEstampado: parseId(formData.get("idEstampado")),
-      idColorPrincipal,
-      idColorSecundario: parseId(formData.get("idColorSecundario")),
+      idTipo: idTipo!,
+      idCorte,
+      idTejido,
+      idMarca: idMarca!,
+      idUbicacion: idUbicacion!,
+      idEstampado,
+      idColorPrincipal: idColorPrincipal!,
+      idColorSecundario,
       urlImagen: finalUrl || null,
-      detalles: (formData.get("detalles") as string) || null,
+      detalles,
     };
 
     await prisma.fPrenda.create({ data });
     revalidatePath("/");
     return { success: true };
   } catch (error) {
+    if (error instanceof Error && error.message === "No autenticado") {
+      return { success: false, error: "No autenticado" };
+    }
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
@@ -124,35 +147,66 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
 
 export async function editarPrenda(id: number, formData: FormData): Promise<ActionResult> {
   try {
+    await requireAuth();
+
     const imagenFile = formData.get("imagen") as File | null;
     const existingUrl = formData.get("urlImagen") as string | null;
     let urlImagen = existingUrl || "";
 
-    if (imagenFile && imagenFile.size > 0) {
-      const blob = await put(imagenFile.name, imagenFile, {
+    const errors: string[] = [];
+    const validatedImage = validateImage(imagenFile, errors);
+
+    if (validatedImage && validatedImage.size > 0) {
+      const blob = await put(validatedImage.name, validatedImage, {
         access: "private",
         addRandomSuffix: true,
       });
       urlImagen = toProxyUrl(blob.url);
     }
 
+    const idTipo = validateRequiredId(formData.get("idTipo"), "Tipo", errors);
+    const idMarca = validateRequiredId(formData.get("idMarca"), "Marca", errors);
+    const idUbicacion = validateRequiredId(formData.get("idUbicacion"), "Ubicacion", errors);
+    const idColorPrincipal = validateRequiredId(formData.get("idColorPrincipal"), "Color principal", errors);
+    const idCorte = validateOptionalId(formData.get("idCorte"), "Corte", errors);
+    const idTejido = validateOptionalId(formData.get("idTejido"), "Tejido", errors);
+    const idEstampado = validateOptionalId(formData.get("idEstampado"), "Estampado", errors);
+    const idColorSecundario = validateOptionalId(formData.get("idColorSecundario"), "Color secundario", errors);
+    const detalles = validateStringLength(formData.get("detalles"), MAX_DETALLES_LENGTH, "Notas", errors);
+
+    await verifyIdExists(idTipo, prisma.dimTipoPrenda, "Tipo", errors);
+    await verifyIdExists(idMarca, prisma.dimMarca, "Marca", errors);
+    await verifyIdExists(idUbicacion, prisma.dimUbicacion, "Ubicacion", errors);
+    await verifyIdExists(idColorPrincipal, prisma.dimColor, "Color principal", errors);
+    await verifyIdExists(idCorte, prisma.dimCorte, "Corte", errors);
+    await verifyIdExists(idTejido, prisma.dimTejido, "Tejido", errors);
+    await verifyIdExists(idEstampado, prisma.dimEstampado, "Estampado", errors);
+    await verifyIdExists(idColorSecundario, prisma.dimColor, "Color secundario", errors);
+
+    if (errors.length > 0) {
+      return { success: false, error: errors.join(". ") };
+    }
+
     const data = {
-      idTipo: parseId(formData.get("idTipo"))!,
-      idCorte: parseId(formData.get("idCorte")),
-      idTejido: parseId(formData.get("idTejido")),
-      idMarca: parseId(formData.get("idMarca"))!,
-      idUbicacion: parseId(formData.get("idUbicacion"))!,
-      idEstampado: parseId(formData.get("idEstampado")),
-      idColorPrincipal: parseId(formData.get("idColorPrincipal"))!,
-      idColorSecundario: parseId(formData.get("idColorSecundario")),
+      idTipo: idTipo!,
+      idCorte,
+      idTejido,
+      idMarca: idMarca!,
+      idUbicacion: idUbicacion!,
+      idEstampado,
+      idColorPrincipal: idColorPrincipal!,
+      idColorSecundario,
       urlImagen,
-      detalles: (formData.get("detalles") as string) || null,
+      detalles,
     };
 
     await prisma.fPrenda.update({ where: { id }, data });
     revalidatePath("/");
     return { success: true };
   } catch (error) {
+    if (error instanceof Error && error.message === "No autenticado") {
+      return { success: false, error: "No autenticado" };
+    }
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
@@ -160,10 +214,14 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
 
 export async function eliminarPrenda(id: number): Promise<ActionResult> {
   try {
+    await requireAuth();
     await prisma.fPrenda.delete({ where: { id } });
     revalidatePath("/");
     return { success: true };
   } catch (error) {
+    if (error instanceof Error && error.message === "No autenticado") {
+      return { success: false, error: "No autenticado" };
+    }
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
@@ -171,6 +229,7 @@ export async function eliminarPrenda(id: number): Promise<ActionResult> {
 
 export async function moverPrenda(id: number, idUbicacion: number): Promise<ActionResult> {
   try {
+    await requireAuth();
     await prisma.fPrenda.update({
       where: { id },
       data: { idUbicacion },
@@ -178,6 +237,9 @@ export async function moverPrenda(id: number, idUbicacion: number): Promise<Acti
     revalidatePath("/");
     return { success: true };
   } catch (error) {
+    if (error instanceof Error && error.message === "No autenticado") {
+      return { success: false, error: "No autenticado" };
+    }
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
@@ -187,19 +249,27 @@ export async function moverPrenda(id: number, idUbicacion: number): Promise<Acti
 
 export async function agregarDimension(tabla: string, nombre: string): Promise<ActionResult> {
   try {
+    await requireAuth();
+    const trimmed = nombre.trim();
+    if (!trimmed || trimmed.length > MAX_NOMBRE_LENGTH) {
+      return { success: false, error: `Nombre invalido (max ${MAX_NOMBRE_LENGTH} caracteres)` };
+    }
     switch (tabla) {
-      case "tipos": await prisma.dimTipoPrenda.create({ data: { nombre } }); break;
-      case "cortes": await prisma.dimCorte.create({ data: { nombre } }); break;
-      case "colores": await prisma.dimColor.create({ data: { nombre } }); break;
-      case "estampados": await prisma.dimEstampado.create({ data: { nombre } }); break;
-      case "tejidos": await prisma.dimTejido.create({ data: { nombre } }); break;
-      case "marcas": await prisma.dimMarca.create({ data: { nombre } }); break;
-      case "ubicaciones": await prisma.dimUbicacion.create({ data: { nombre } }); break;
+      case "tipos": await prisma.dimTipoPrenda.create({ data: { nombre: trimmed } }); break;
+      case "cortes": await prisma.dimCorte.create({ data: { nombre: trimmed } }); break;
+      case "colores": await prisma.dimColor.create({ data: { nombre: trimmed } }); break;
+      case "estampados": await prisma.dimEstampado.create({ data: { nombre: trimmed } }); break;
+      case "tejidos": await prisma.dimTejido.create({ data: { nombre: trimmed } }); break;
+      case "marcas": await prisma.dimMarca.create({ data: { nombre: trimmed } }); break;
+      case "ubicaciones": await prisma.dimUbicacion.create({ data: { nombre: trimmed } }); break;
       default: return { success: false, error: "Tabla desconocida" };
     }
     revalidatePath("/");
     return { success: true };
   } catch (error) {
+    if (error instanceof Error && error.message === "No autenticado") {
+      return { success: false, error: "No autenticado" };
+    }
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
@@ -207,6 +277,7 @@ export async function agregarDimension(tabla: string, nombre: string): Promise<A
 
 export async function eliminarDimension(tabla: string, id: number): Promise<ActionResult> {
   try {
+    await requireAuth();
     switch (tabla) {
       case "tipos": await prisma.dimTipoPrenda.delete({ where: { id } }); break;
       case "cortes": await prisma.dimCorte.delete({ where: { id } }); break;
@@ -220,6 +291,9 @@ export async function eliminarDimension(tabla: string, id: number): Promise<Acti
     revalidatePath("/");
     return { success: true };
   } catch (error) {
+    if (error instanceof Error && error.message === "No autenticado") {
+      return { success: false, error: "No autenticado" };
+    }
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }

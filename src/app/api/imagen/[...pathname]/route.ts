@@ -1,10 +1,17 @@
 import { get } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ pathname: string[] }> }
 ) {
+  try {
+    await requireAuth();
+  } catch {
+    return new NextResponse("No autenticado", { status: 401 });
+  }
+
   const { pathname } = await params;
   // pathname comes as segments like ["xxx.private.blob.vercel-storage.com", "filename.jpg"]
   // or just ["filename.jpg"] depending on how it was stored

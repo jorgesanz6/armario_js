@@ -241,7 +241,7 @@ export default function FormularioPrenda({ dimensiones, prenda, ubicacionId, onC
             ref={fileRef}
             type="file"
             name="imagen"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
           />
           <input type="hidden" name="urlImagen" value={urlImagen} />
