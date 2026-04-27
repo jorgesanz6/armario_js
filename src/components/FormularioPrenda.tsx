@@ -47,16 +47,17 @@ export interface PrendaExistente {
 interface FormProps {
   dimensiones: Dimensiones;
   prenda?: PrendaExistente | null;
+  ubicacionId: number;
   onClose: () => void;
 }
 
-export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormProps) {
+export default function FormularioPrenda({ dimensiones, prenda, ubicacionId, onClose }: FormProps) {
   const [isPending, startTransition] = useTransition();
+  const [showDetalles, setShowDetalles] = useState(false);
   const [idTipo, setIdTipo] = useState<number>(prenda?.idTipo ?? 0);
   const [idCorte, setIdCorte] = useState<number | null>(prenda?.idCorte ?? null);
   const [idTejido, setIdTejido] = useState<number | null>(prenda?.idTejido ?? null);
   const [idMarca, setIdMarca] = useState<number>(prenda?.idMarca ?? 0);
-  const [idUbicacion, setIdUbicacion] = useState<number>(prenda?.idUbicacion ?? 0);
   const [idEstampado, setIdEstampado] = useState<number | null>(prenda?.idEstampado ?? null);
   const [idColorPrincipal, setIdColorPrincipal] = useState<number>(prenda?.idColorPrincipal ?? 0);
   const [idColorSecundario, setIdColorSecundario] = useState<number | null>(prenda?.idColorSecundario ?? null);
@@ -267,77 +268,6 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
           </select>
         </div>
 
-        {/* Corte */}
-        {showCorte && (
-          <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
-              Corte *
-            </label>
-            <select
-              name="idCorte"
-              value={idCorte ?? 0}
-              onChange={(e) => setIdCorte(Number(e.target.value) || null)}
-              className={selectClass}
-              required
-            >
-              <option value={0}>Seleccionar...</option>
-              {cortesFiltrados.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Tejido */}
-        {showTejido && (
-          <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
-              Tejido *
-            </label>
-            <select
-              name="idTejido"
-              value={idTejido ?? 0}
-              onChange={(e) => setIdTejido(Number(e.target.value) || null)}
-              className={selectClass}
-              required
-            >
-              <option value={0}>Seleccionar...</option>
-              {tejidosFiltrados.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Estampado */}
-        {showEstampado && (
-          <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
-              Estampado *
-            </label>
-            <select
-              name="idEstampado"
-              value={idEstampado ?? 0}
-              onChange={(e) =>
-                handleEstampadoChange(Number(e.target.value) || null)
-              }
-              className={selectClass}
-              required
-            >
-              <option value={0}>Seleccionar...</option>
-              {dimensiones.estampados.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {/* Color Principal */}
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-card-foreground">
@@ -358,31 +288,6 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
             ))}
           </select>
         </div>
-
-        {/* Color Secundario */}
-        {showColorSecundario && (
-          <div className="mb-3">
-            <label className="mb-1 block text-sm font-medium text-card-foreground">
-              Color secundario *
-            </label>
-            <select
-              name="idColorSecundario"
-              value={idColorSecundario ?? 0}
-              onChange={(e) =>
-                setIdColorSecundario(Number(e.target.value) || null)
-              }
-              className={selectClass}
-              required
-            >
-              <option value={0}>Seleccionar...</option>
-              {dimensiones.colores.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {/* Marca */}
         <div className="mb-3">
@@ -405,43 +310,127 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
           </select>
         </div>
 
-        {/* Ubicación */}
+        {/* + Detalles */}
         <div className="mb-3">
-          <label className="mb-1 block text-sm font-medium text-card-foreground">
-            Ubicación *
-          </label>
-          <select
-            name="idUbicacion"
-            value={idUbicacion}
-            onChange={(e) => setIdUbicacion(Number(e.target.value))}
-            className={selectClass}
-            required
-          >
-            <option value={0}>Seleccionar...</option>
-            {dimensiones.ubicaciones.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nombre}
-              </option>
-            ))}
-          </select>
+          <button type="button" onClick={() => setShowDetalles(!showDetalles)}
+            className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
+            + Detalles
+            <span className="text-xs">{showDetalles ? "−" : "+"}</span>
+          </button>
+          {showDetalles && (
+            <div className="mt-2 space-y-3">
+              {/* Corte */}
+              {showCorte && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-card-foreground">
+                    Corte
+                  </label>
+                  <select
+                    name="idCorte"
+                    value={idCorte ?? 0}
+                    onChange={(e) => setIdCorte(Number(e.target.value) || null)}
+                    className={selectClass}
+                  >
+                    <option value={0}>Seleccionar...</option>
+                    {cortesFiltrados.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Tejido */}
+              {showTejido && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-card-foreground">
+                    Tejido
+                  </label>
+                  <select
+                    name="idTejido"
+                    value={idTejido ?? 0}
+                    onChange={(e) => setIdTejido(Number(e.target.value) || null)}
+                    className={selectClass}
+                  >
+                    <option value={0}>Seleccionar...</option>
+                    {tejidosFiltrados.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Estampado */}
+              {showEstampado && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-card-foreground">
+                    Estampado
+                  </label>
+                  <select
+                    name="idEstampado"
+                    value={idEstampado ?? 0}
+                    onChange={(e) =>
+                      handleEstampadoChange(Number(e.target.value) || null)
+                    }
+                    className={selectClass}
+                  >
+                    <option value={0}>Seleccionar...</option>
+                    {dimensiones.estampados.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Color Secundario */}
+              {showColorSecundario && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-card-foreground">
+                    Color secundario
+                  </label>
+                  <select
+                    name="idColorSecundario"
+                    value={idColorSecundario ?? 0}
+                    onChange={(e) =>
+                      setIdColorSecundario(Number(e.target.value) || null)
+                    }
+                    className={selectClass}
+                  >
+                    <option value={0}>Seleccionar...</option>
+                    {dimensiones.colores.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Notas */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-card-foreground">
+                  Notas
+                </label>
+                <textarea
+                  name="detalles"
+                  value={detalles}
+                  onChange={(e) => setDetalles(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-foreground"
+                  placeholder="Notas opcionales..."
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Detalles */}
-        <div className="mb-4">
-          <label className="mb-1 block text-sm font-medium text-card-foreground">
-            Detalles
-          </label>
-          <textarea
-            name="detalles"
-            value={detalles}
-            onChange={(e) => setDetalles(e.target.value)}
-            rows={2}
-            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none text-foreground"
-            placeholder="Notas opcionales..."
-          />
-        </div>
-
-        {/* Hidden fields para campos ocultos */}
+        {/* Hidden fields */}
+        <input type="hidden" name="idUbicacion" value={ubicacionId} />
         {!showCorte && <input type="hidden" name="idCorte" value="" />}
         {!showTejido && <input type="hidden" name="idTejido" value="" />}
         {!showEstampado && <input type="hidden" name="idEstampado" value="" />}

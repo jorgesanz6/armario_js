@@ -230,6 +230,7 @@ export default function GaleriaPrendas({
   const [detallePrenda, setDetallePrenda] = useState<Prenda | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState<number | null>(null);
+  const [preselectedUbicacion, setPreselectedUbicacion] = useState<number>(madridId);
   const [, startTransition] = useTransition();
 
   function handleMover(id: number, destinoId: number) {
@@ -287,22 +288,20 @@ export default function GaleriaPrendas({
                 <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM12 18.75a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V19.5a.75.75 0 0 1 .75-.75Zm-7.28-2.47a.75.75 0 0 1 1.06 1.06l-1.59 1.59a.75.75 0 1 1-1.06-1.06l1.59-1.59ZM2.25 12a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75Zm15.22-5.28a.75.75 0 0 1 1.06-1.06l1.59 1.59a.75.75 0 1 1-1.06 1.06l-1.59-1.59Zm1.59 10.84a.75.75 0 1 1-1.06 1.06l-1.59-1.59a.75.75 0 1 1 1.06-1.06l1.59 1.59ZM18.75 12a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H19.5a.75.75 0 0 1-.75-.75Z" />
               </svg>
             </button>
-            <button onClick={() => { setEditPrenda(null); setShowForm(true); }}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
-              + Nueva
-            </button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-4">
         <p className="mb-3 text-xs text-muted-foreground">Toca para mover · Deja pulsado para ver detalle</p>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3">
           <section>
             <div className="mb-3 flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-red-500" />
               <h2 className="text-base font-semibold text-foreground">Madrid</h2>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{madrid.length}</span>
+              <button onClick={() => { setEditPrenda(null); setPreselectedUbicacion(madridId); setShowForm(true); }}
+                className="ml-auto rounded bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground hover:opacity-90">+</button>
             </div>
             <div className="space-y-1.5">
               {madrid.map((p) => (
@@ -317,6 +316,8 @@ export default function GaleriaPrendas({
               <div className="h-3 w-3 rounded-full bg-purple-500" />
               <h2 className="text-base font-semibold text-foreground">Valladolid</h2>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{valladolid.length}</span>
+              <button onClick={() => { setEditPrenda(null); setPreselectedUbicacion(valladolidId); setShowForm(true); }}
+                className="ml-auto rounded bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground hover:opacity-90">+</button>
             </div>
             <div className="space-y-1.5">
               {valladolid.map((p) => (
@@ -356,7 +357,7 @@ export default function GaleriaPrendas({
           filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo} />
       )}
       {showForm && (
-        <FormularioPrenda dimensiones={dimensiones} prenda={editPrenda}
+        <FormularioPrenda dimensiones={dimensiones} prenda={editPrenda} ubicacionId={editPrenda ? editPrenda.idUbicacion : preselectedUbicacion}
           onClose={() => { setShowForm(false); setEditPrenda(null); }} />
       )}
     </div>
