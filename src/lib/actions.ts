@@ -56,45 +56,53 @@ export async function getPrenda(id: number) {
 }
 
 export async function crearPrenda(formData: FormData) {
-  const imagenFile = formData.get("imagen") as File | null;
-  const existingUrl = formData.get("urlImagen") as string | null;
+  try {
+    const imagenFile = formData.get("imagen") as File | null;
+    const existingUrl = formData.get("urlImagen") as string | null;
 
-  let finalUrl = existingUrl || "";
+    let finalUrl = existingUrl || "";
 
-  if (imagenFile && imagenFile.size > 0) {
-    const blob = await put(imagenFile.name, imagenFile, {
-      access: "public",
-    });
-    finalUrl = blob.url;
+    if (imagenFile && imagenFile.size > 0) {
+      console.log("[crearPrenda] Uploading image:", imagenFile.name, imagenFile.size, "bytes");
+      const blob = await put(imagenFile.name, imagenFile, {
+        access: "public",
+      });
+      finalUrl = blob.url;
+      console.log("[crearPrenda] Image uploaded:", finalUrl);
+    }
+
+    if (!finalUrl) {
+      throw new Error("La imagen es obligatoria");
+    }
+
+    const data = {
+      idTipo: Number(formData.get("idTipo")),
+      idCorte: formData.get("idCorte")
+        ? Number(formData.get("idCorte"))
+        : null,
+      idTejido: formData.get("idTejido")
+        ? Number(formData.get("idTejido"))
+        : null,
+      idMarca: Number(formData.get("idMarca")),
+      idUbicacion: Number(formData.get("idUbicacion")),
+      idEstampado: formData.get("idEstampado")
+        ? Number(formData.get("idEstampado"))
+        : null,
+      idColorPrincipal: Number(formData.get("idColorPrincipal")),
+      idColorSecundario: formData.get("idColorSecundario")
+        ? Number(formData.get("idColorSecundario"))
+        : null,
+      urlImagen: finalUrl,
+      detalles: (formData.get("detalles") as string) || null,
+    };
+
+    console.log("[crearPrenda] Creating prenda:", JSON.stringify(data, null, 2));
+    await prisma.fPrenda.create({ data });
+    revalidatePath("/");
+  } catch (error) {
+    console.error("[crearPrenda] Error:", error);
+    throw error;
   }
-
-  if (!finalUrl) {
-    throw new Error("La imagen es obligatoria");
-  }
-
-  const data = {
-    idTipo: Number(formData.get("idTipo")),
-    idCorte: formData.get("idCorte")
-      ? Number(formData.get("idCorte"))
-      : null,
-    idTejido: formData.get("idTejido")
-      ? Number(formData.get("idTejido"))
-      : null,
-    idMarca: Number(formData.get("idMarca")),
-    idUbicacion: Number(formData.get("idUbicacion")),
-    idEstampado: formData.get("idEstampado")
-      ? Number(formData.get("idEstampado"))
-      : null,
-    idColorPrincipal: Number(formData.get("idColorPrincipal")),
-    idColorSecundario: formData.get("idColorSecundario")
-      ? Number(formData.get("idColorSecundario"))
-      : null,
-    urlImagen: finalUrl,
-    detalles: (formData.get("detalles") as string) || null,
-  };
-
-  await prisma.fPrenda.create({ data });
-  revalidatePath("/");
 }
 
 export async function editarPrenda(id: number, formData: FormData) {
