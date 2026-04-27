@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import {
   crearPrenda,
   editarPrenda,
@@ -63,6 +63,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
   const [detalles, setDetalles] = useState<string>(prenda?.detalles ?? "");
   const [urlImagen, setUrlImagen] = useState<string>(prenda?.urlImagen ?? "");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const tipoNombre = dimensiones.tipos.find((t) => t.id === idTipo)?.nombre ?? "";
   const pucela = esPucela(tipoNombre);
@@ -156,15 +157,48 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
           </label>
           {urlImagen && (
             <div className="mb-2">
-              <img src={urlImagen} alt="Preview" className="h-20 w-20 rounded object-cover" />
+              <img src={urlImagen} alt="Preview" className="h-24 w-24 rounded-lg object-cover border border-gray-200" />
             </div>
           )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (fileRef.current) {
+                  fileRef.current.setAttribute("capture", "environment");
+                  fileRef.current.click();
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" />
+              </svg>
+              Cámara
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (fileRef.current) {
+                  fileRef.current.removeAttribute("capture");
+                  fileRef.current.click();
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.5V6h18v10.5l-4.5-3-4.5 4.5-4.5-3-4.5 3Z" clipRule="evenodd" />
+              </svg>
+              Galería
+            </button>
+          </div>
+          {/* Single hidden file input - capture attr toggled by buttons */}
           <input
+            ref={fileRef}
             type="file"
             name="imagen"
             accept="image/*"
-            required={!prenda && !urlImagen}
-            className="w-full text-sm file:mr-2 file:rounded file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+            className="hidden"
           />
           <input type="hidden" name="urlImagen" value={urlImagen} />
         </div>
