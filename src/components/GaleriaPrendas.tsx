@@ -362,9 +362,6 @@ export default function GaleriaPrendas({
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  // Hydration guard — show skeleton until client mounts
-  if (!mounted) return <Skeleton />;
-
   function addToast(msg: string, type: "ok" | "err" = "ok") {
     const id = ++toastCounter;
     setToasts((prev) => [...prev.slice(-2), { id, msg, type }]);
@@ -510,6 +507,8 @@ export default function GaleriaPrendas({
       setShowInstall(false);
     });
   }
+
+  if (!mounted) return <Skeleton />;
 
   return (
     <div className="min-h-screen bg-background">
