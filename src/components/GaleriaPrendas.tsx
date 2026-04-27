@@ -374,7 +374,7 @@ export default function GaleriaPrendas({
       const result = await moverPrenda(id, destinoId);
       setOptimisticMovers((prev) => { const m = new Map(prev); m.delete(id); return m; });
       if (result.success) {
-        addToast("Movido");
+        // silent success
       } else {
         addToast(result.error, "err");
       }
