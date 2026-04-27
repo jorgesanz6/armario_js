@@ -6,6 +6,19 @@ import { revalidatePath } from "next/cache";
 
 export type ActionResult = { success: true } | { success: false; error: string };
 
+function toProxyUrl(blobUrl: string): string {
+  // Convert blob URL to our proxy route: /api/imagen/[pathname]
+  // blobUrl = https://xxx.public.blob.vercel-storage.com/pathname
+  // or     = https://xxx.private.blob.vercel-storage.com/pathname
+  try {
+    const url = new URL(blobUrl);
+    const pathname = url.pathname.startsWith("/") ? url.pathname.slice(1) : url.pathname;
+    return `/api/imagen/${pathname}`;
+  } catch {
+    return blobUrl;
+  }
+}
+
 // --- Dimension fetchers ---
 
 export async function getDimensiones() {
@@ -66,9 +79,9 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
 
     if (imagenFile && imagenFile.size > 0) {
       const blob = await put(imagenFile.name, imagenFile, {
-        access: "public",
+        access: "private",
       });
-      finalUrl = blob.url;
+      finalUrl = toProxyUrl(blob.url);
     }
 
     if (!finalUrl) {
@@ -113,9 +126,9 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
 
     if (imagenFile && imagenFile.size > 0) {
       const blob = await put(imagenFile.name, imagenFile, {
-        access: "public",
+        access: "private",
       });
-      urlImagen = blob.url;
+      urlImagen = toProxyUrl(blob.url);
     }
 
     const data = {
