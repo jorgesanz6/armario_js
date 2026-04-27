@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model DimTipoPrenda {
+  id        Int       @id @default(autoincrement()) @map("ID_Tipo")
+  nombre    String    @unique @map("Tipo_Prenda")
+  prendas   FPrenda[] @relation("TipoPrenda")
+
+  @@map("Dim_TipoPrenda")
+}
+
+model DimCorte {
+  id      Int       @id @default(autoincrement()) @map("ID_Corte")
+  nombre  String    @unique @map("Corte")
+  prendas FPrenda[] @relation("Corte")
+
+  @@map("Dim_Corte")
+}
+
+model DimColor {
+  id              Int       @id @default(autoincrement()) @map("ID_Color")
+  nombre          String    @unique @map("Color")
+  colorPrincipal  FPrenda[] @relation("ColorPrincipal")
+  colorSecundario FPrenda[] @relation("ColorSecundario")
+
+  @@map("Dim_Color")
+}
+
+model DimEstampado {
+  id      Int       @id @default(autoincrement()) @map("ID_Estampado")
+  nombre  String    @unique @map("Estampado")
+  prendas FPrenda[] @relation("Estampado")
+
+  @@map("Dim_Estampado")
+}
+
+model DimTejido {
+  id      Int       @id @default(autoincrement()) @map("ID_Tejido")
+  nombre  String    @unique @map("Tejido")
+  prendas FPrenda[] @relation("Tejido")
+
+  @@map("Dim_Tejido")
+}
+
+model DimMarca {
+  id      Int       @id @default(autoincrement()) @map("ID_Marca")
+  nombre  String    @unique @map("Marca")
+  prendas FPrenda[] @relation("Marca")
+
+  @@map("Dim_Marca")
+}
+
+model DimUbicacion {
+  id      Int       @id @default(autoincrement()) @map("ID_Ubicacion")
+  nombre  String    @unique @map("Ubicacion")
+  prendas FPrenda[] @relation("Ubicacion")
+
+  @@map("Dim_Ubicacion")
+}
+
+model FPrenda {
+  id               Int            @id @default(autoincrement()) @map("ID_Prenda")
+  idTipo           Int            @map("ID_Tipo")
+  idCorte          Int?           @map("ID_Corte")
+  idTejido         Int?           @map("ID_Tejido")
+  idMarca          Int            @map("ID_Marca")
+  idUbicacion      Int            @map("ID_Ubicacion")
+  idEstampado      Int?           @map("ID_Estampado")
+  idColorPrincipal Int            @map("ID_Color_Principal")
+  idColorSecundario Int?          @map("ID_Color_Secundario")
+  urlImagen        String         @map("URL_Imagen")
+  detalles         String?        @map("Detalles")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  tipo             DimTipoPrenda  @relation("TipoPrenda", fields: [idTipo], references: [id])
+  corte            DimCorte?      @relation("Corte", fields: [idCorte], references: [id])
+  tejido           DimTejido?     @relation("Tejido", fields: [idTejido], references: [id])
+  marca            DimMarca       @relation("Marca", fields: [idMarca], references: [id])
+  ubicacion        DimUbicacion   @relation("Ubicacion", fields: [idUbicacion], references: [id])
+  estampado        DimEstampado?  @relation("Estampado", fields: [idEstampado], references: [id])
+  colorPrincipal   DimColor       @relation("ColorPrincipal", fields: [idColorPrincipal], references: [id])
+  colorSecundario  DimColor?      @relation("ColorSecundario", fields: [idColorSecundario], references: [id])
+
+  @@map("F_Prendas")
+}
