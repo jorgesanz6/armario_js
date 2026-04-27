@@ -1,6 +1,8 @@
 import { getPrendas, getDimensiones } from "@/lib/actions";
 import GaleriaPrendas from "@/components/GaleriaPrendas";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const [prendas, dimensiones] = await Promise.all([
     getPrendas(),
