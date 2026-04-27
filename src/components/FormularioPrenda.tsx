@@ -113,12 +113,16 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      if (prenda) {
-        await editarPrenda(prenda.id, formData);
-      } else {
-        await crearPrenda(formData);
+      try {
+        if (prenda) {
+          await editarPrenda(prenda.id, formData);
+        } else {
+          await crearPrenda(formData);
+        }
+        onClose();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Error al guardar");
       }
-      onClose();
     });
   }
 
@@ -138,17 +142,21 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
         {/* Imagen */}
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            Foto de la prenda
+            Foto de la prenda {!prenda && "*"}
           </label>
+          {urlImagen && (
+            <div className="mb-2">
+              <img src={urlImagen} alt="Preview" className="h-20 w-20 rounded object-cover" />
+            </div>
+          )}
           <input
             type="file"
             name="imagen"
             accept="image/*"
+            required={!prenda && !urlImagen}
             className="w-full text-sm file:mr-2 file:rounded file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
           />
-          {urlImagen && (
-            <input type="hidden" name="urlImagen" value={urlImagen} />
-          )}
+          <input type="hidden" name="urlImagen" value={urlImagen} />
         </div>
 
         {/* Tipo */}

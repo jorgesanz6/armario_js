@@ -56,16 +56,20 @@ export async function getPrenda(id: number) {
 }
 
 export async function crearPrenda(formData: FormData) {
-  const urlImagen = formData.get("urlImagen") as string;
   const imagenFile = formData.get("imagen") as File | null;
+  const existingUrl = formData.get("urlImagen") as string | null;
 
-  let finalUrl = urlImagen;
+  let finalUrl = existingUrl || "";
 
   if (imagenFile && imagenFile.size > 0) {
     const blob = await put(imagenFile.name, imagenFile, {
       access: "public",
     });
     finalUrl = blob.url;
+  }
+
+  if (!finalUrl) {
+    throw new Error("La imagen es obligatoria");
   }
 
   const data = {
@@ -85,7 +89,7 @@ export async function crearPrenda(formData: FormData) {
     idColorSecundario: formData.get("idColorSecundario")
       ? Number(formData.get("idColorSecundario"))
       : null,
-    urlImagen: finalUrl || "",
+    urlImagen: finalUrl,
     detalles: (formData.get("detalles") as string) || null,
   };
 
@@ -95,7 +99,8 @@ export async function crearPrenda(formData: FormData) {
 
 export async function editarPrenda(id: number, formData: FormData) {
   const imagenFile = formData.get("imagen") as File | null;
-  let urlImagen = formData.get("urlImagen") as string;
+  const existingUrl = formData.get("urlImagen") as string | null;
+  let urlImagen = existingUrl || "";
 
   if (imagenFile && imagenFile.size > 0) {
     const blob = await put(imagenFile.name, imagenFile, {
