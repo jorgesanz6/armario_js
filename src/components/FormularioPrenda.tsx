@@ -5,6 +5,7 @@ import {
   crearPrenda,
   editarPrenda,
   getDimensiones,
+  type ActionResult,
 } from "@/lib/actions";
 import {
   mostrarCorte,
@@ -61,6 +62,7 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
   const [idColorSecundario, setIdColorSecundario] = useState<number | null>(prenda?.idColorSecundario ?? null);
   const [detalles, setDetalles] = useState<string>(prenda?.detalles ?? "");
   const [urlImagen, setUrlImagen] = useState<string>(prenda?.urlImagen ?? "");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const tipoNombre = dimensiones.tipos.find((t) => t.id === idTipo)?.nombre ?? "";
   const pucela = esPucela(tipoNombre);
@@ -112,16 +114,18 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
   }
 
   async function handleSubmit(formData: FormData) {
+    setErrorMsg(null);
     startTransition(async () => {
-      try {
-        if (prenda) {
-          await editarPrenda(prenda.id, formData);
-        } else {
-          await crearPrenda(formData);
-        }
+      let result: ActionResult;
+      if (prenda) {
+        result = await editarPrenda(prenda.id, formData);
+      } else {
+        result = await crearPrenda(formData);
+      }
+      if (result.success) {
         onClose();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Error al guardar");
+      } else {
+        setErrorMsg(result.error);
       }
     });
   }
@@ -138,6 +142,12 @@ export default function FormularioPrenda({ dimensiones, prenda, onClose }: FormP
         <h2 className="mb-4 text-lg font-semibold text-gray-900">
           {prenda ? "Editar prenda" : "Nueva prenda"}
         </h2>
+
+        {errorMsg && (
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+            {errorMsg}
+          </div>
+        )}
 
         {/* Imagen */}
         <div className="mb-3">

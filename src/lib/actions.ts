@@ -4,6 +4,8 @@ import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+export type ActionResult = { success: true } | { success: false; error: string };
+
 // --- Dimension fetchers ---
 
 export async function getDimensiones() {
@@ -55,7 +57,7 @@ export async function getPrenda(id: number) {
   });
 }
 
-export async function crearPrenda(formData: FormData) {
+export async function crearPrenda(formData: FormData): Promise<ActionResult> {
   try {
     const imagenFile = formData.get("imagen") as File | null;
     const existingUrl = formData.get("urlImagen") as string | null;
@@ -63,16 +65,14 @@ export async function crearPrenda(formData: FormData) {
     let finalUrl = existingUrl || "";
 
     if (imagenFile && imagenFile.size > 0) {
-      console.log("[crearPrenda] Uploading image:", imagenFile.name, imagenFile.size, "bytes");
       const blob = await put(imagenFile.name, imagenFile, {
         access: "public",
       });
       finalUrl = blob.url;
-      console.log("[crearPrenda] Image uploaded:", finalUrl);
     }
 
     if (!finalUrl) {
-      throw new Error("La imagen es obligatoria");
+      return { success: false, error: "La imagen es obligatoria" };
     }
 
     const data = {
@@ -96,61 +96,79 @@ export async function crearPrenda(formData: FormData) {
       detalles: (formData.get("detalles") as string) || null,
     };
 
-    console.log("[crearPrenda] Creating prenda:", JSON.stringify(data, null, 2));
     await prisma.fPrenda.create({ data });
     revalidatePath("/");
+    return { success: true };
   } catch (error) {
-    console.error("[crearPrenda] Error:", error);
-    throw error;
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
   }
 }
 
-export async function editarPrenda(id: number, formData: FormData) {
-  const imagenFile = formData.get("imagen") as File | null;
-  const existingUrl = formData.get("urlImagen") as string | null;
-  let urlImagen = existingUrl || "";
+export async function editarPrenda(id: number, formData: FormData): Promise<ActionResult> {
+  try {
+    const imagenFile = formData.get("imagen") as File | null;
+    const existingUrl = formData.get("urlImagen") as string | null;
+    let urlImagen = existingUrl || "";
 
-  if (imagenFile && imagenFile.size > 0) {
-    const blob = await put(imagenFile.name, imagenFile, {
-      access: "public",
+    if (imagenFile && imagenFile.size > 0) {
+      const blob = await put(imagenFile.name, imagenFile, {
+        access: "public",
+      });
+      urlImagen = blob.url;
+    }
+
+    const data = {
+      idTipo: Number(formData.get("idTipo")),
+      idCorte: formData.get("idCorte")
+        ? Number(formData.get("idCorte"))
+        : null,
+      idTejido: formData.get("idTejido")
+        ? Number(formData.get("idTejido"))
+        : null,
+      idMarca: Number(formData.get("idMarca")),
+      idUbicacion: Number(formData.get("idUbicacion")),
+      idEstampado: formData.get("idEstampado")
+        ? Number(formData.get("idEstampado"))
+        : null,
+      idColorPrincipal: Number(formData.get("idColorPrincipal")),
+      idColorSecundario: formData.get("idColorSecundario")
+        ? Number(formData.get("idColorSecundario"))
+        : null,
+      urlImagen,
+      detalles: (formData.get("detalles") as string) || null,
+    };
+
+    await prisma.fPrenda.update({ where: { id }, data });
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
+  }
+}
+
+export async function eliminarPrenda(id: number): Promise<ActionResult> {
+  try {
+    await prisma.fPrenda.delete({ where: { id } });
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
+  }
+}
+
+export async function moverPrenda(id: number, idUbicacion: number): Promise<ActionResult> {
+  try {
+    await prisma.fPrenda.update({
+      where: { id },
+      data: { idUbicacion },
     });
-    urlImagen = blob.url;
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
   }
-
-  const data = {
-    idTipo: Number(formData.get("idTipo")),
-    idCorte: formData.get("idCorte")
-      ? Number(formData.get("idCorte"))
-      : null,
-    idTejido: formData.get("idTejido")
-      ? Number(formData.get("idTejido"))
-      : null,
-    idMarca: Number(formData.get("idMarca")),
-    idUbicacion: Number(formData.get("idUbicacion")),
-    idEstampado: formData.get("idEstampado")
-      ? Number(formData.get("idEstampado"))
-      : null,
-    idColorPrincipal: Number(formData.get("idColorPrincipal")),
-    idColorSecundario: formData.get("idColorSecundario")
-      ? Number(formData.get("idColorSecundario"))
-      : null,
-    urlImagen,
-    detalles: (formData.get("detalles") as string) || null,
-  };
-
-  await prisma.fPrenda.update({ where: { id }, data });
-  revalidatePath("/");
-}
-
-export async function eliminarPrenda(id: number) {
-  await prisma.fPrenda.delete({ where: { id } });
-  revalidatePath("/");
-}
-
-export async function moverPrenda(id: number, idUbicacion: number) {
-  await prisma.fPrenda.update({
-    where: { id },
-    data: { idUbicacion },
-  });
-  revalidatePath("/");
 }
