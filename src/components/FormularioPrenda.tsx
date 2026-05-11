@@ -24,24 +24,24 @@ type Dimensiones = Awaited<ReturnType<typeof getDimensiones>>;
 
 export interface PrendaExistente {
   id: number;
-  idTipo: number;
+  idTipo: number | null;
   idCorte: number | null;
   idTejido: number | null;
-  idMarca: number;
-  idUbicacion: number;
+  idMarca: number | null;
+  idUbicacion: number | null;
   idEstampado: number | null;
-  idColorPrincipal: number;
+  idColorPrincipal: number | null;
   idColorSecundario: number | null;
   urlImagen: string | null;
   detalles: string | null;
   nombre: string | null;
-  tipo: { id: number; nombre: string };
+  tipo: { id: number; nombre: string } | null;
   corte: { id: number; nombre: string } | null;
   tejido: { id: number; nombre: string } | null;
-  marca: { id: number; nombre: string };
-  ubicacion: { id: number; nombre: string };
+  marca: { id: number; nombre: string } | null;
+  ubicacion: { id: number; nombre: string } | null;
   estampado: { id: number; nombre: string } | null;
-  colorPrincipal: { id: number; nombre: string };
+  colorPrincipal: { id: number; nombre: string } | null;
   colorSecundario: { id: number; nombre: string } | null;
 }
 
@@ -55,12 +55,12 @@ interface FormProps {
 export default function FormularioPrenda({ dimensiones, prenda, ubicacionId, onClose }: FormProps) {
   const [isPending, startTransition] = useTransition();
   const [showDetalles, setShowDetalles] = useState(false);
-  const [idTipo, setIdTipo] = useState<number>(prenda?.idTipo ?? 0);
+  const [idTipo, setIdTipo] = useState<number | null>(prenda?.idTipo ?? null);
   const [idCorte, setIdCorte] = useState<number | null>(prenda?.idCorte ?? null);
   const [idTejido, setIdTejido] = useState<number | null>(prenda?.idTejido ?? null);
-  const [idMarca, setIdMarca] = useState<number>(prenda?.idMarca ?? 0);
+  const [idMarca, setIdMarca] = useState<number | null>(prenda?.idMarca ?? null);
   const [idEstampado, setIdEstampado] = useState<number | null>(prenda?.idEstampado ?? null);
-  const [idColorPrincipal, setIdColorPrincipal] = useState<number>(prenda?.idColorPrincipal ?? 0);
+  const [idColorPrincipal, setIdColorPrincipal] = useState<number | null>(prenda?.idColorPrincipal ?? null);
   const [idColorSecundario, setIdColorSecundario] = useState<number | null>(prenda?.idColorSecundario ?? null);
   const [detalles, setDetalles] = useState<string>(prenda?.detalles ?? "");
   const [nombre, setNombre] = useState<string>(prenda?.nombre ?? "");
@@ -96,9 +96,9 @@ export default function FormularioPrenda({ dimensiones, prenda, ubicacionId, onC
     ? dimensiones.marcas.filter((m) => MARCAS_PUCELA.includes(m.id))
     : dimensiones.marcas;
 
-  function handleTipoChange(newId: number) {
+  function handleTipoChange(newId: number | null) {
     setIdTipo(newId);
-    const newNombre = dimensiones.tipos.find((t) => t.id === newId)?.nombre ?? "";
+    const newNombre = newId ? dimensiones.tipos.find((t) => t.id === newId)?.nombre ?? "" : "";
     // Reset campos condicionales
     if (!mostrarCorte(newNombre)) setIdCorte(null);
     if (reglaTejido(newNombre) === "oculto") setIdTejido(null);
@@ -270,16 +270,15 @@ export default function FormularioPrenda({ dimensiones, prenda, ubicacionId, onC
         {/* Tipo */}
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-card-foreground">
-            Tipo de prenda *
+            Tipo de prenda
           </label>
           <select
             name="idTipo"
-            value={idTipo}
-            onChange={(e) => handleTipoChange(Number(e.target.value))}
+            value={idTipo ?? ""}
+            onChange={(e) => handleTipoChange(e.target.value ? Number(e.target.value) : null)}
             className={selectClass}
-            required
           >
-            <option value={0}>Seleccionar...</option>
+            <option value="">Seleccionar...</option>
             {dimensiones.tipos.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.nombre}
@@ -291,16 +290,15 @@ export default function FormularioPrenda({ dimensiones, prenda, ubicacionId, onC
         {/* Color Principal */}
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-card-foreground">
-            Color principal *
+            Color principal
           </label>
           <select
             name="idColorPrincipal"
-            value={idColorPrincipal}
-            onChange={(e) => setIdColorPrincipal(Number(e.target.value))}
+            value={idColorPrincipal ?? ""}
+            onChange={(e) => setIdColorPrincipal(e.target.value ? Number(e.target.value) : null)}
             className={selectClass}
-            required
           >
-            <option value={0}>Seleccionar...</option>
+            <option value="">Seleccionar...</option>
             {coloresPrincipales.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nombre}
@@ -312,16 +310,15 @@ export default function FormularioPrenda({ dimensiones, prenda, ubicacionId, onC
         {/* Marca */}
         <div className="mb-3">
           <label className="mb-1 block text-sm font-medium text-card-foreground">
-            Marca *
+            Marca
           </label>
           <select
             name="idMarca"
-            value={idMarca}
-            onChange={(e) => setIdMarca(Number(e.target.value))}
+            value={idMarca ?? ""}
+            onChange={(e) => setIdMarca(e.target.value ? Number(e.target.value) : null)}
             className={selectClass}
-            required
           >
-            <option value={0}>Seleccionar...</option>
+            <option value="">Seleccionar...</option>
             {marcasOpts.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.nombre}
