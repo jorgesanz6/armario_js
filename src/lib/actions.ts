@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import {
-  validateRequiredId,
   validateOptionalId,
   validateImage,
   validateStringLength,
@@ -97,15 +96,16 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
       finalUrl = toProxyUrl(blob.url);
     }
 
-    const idTipo = validateRequiredId(formData.get("idTipo"), "Tipo", errors);
-    const idMarca = validateRequiredId(formData.get("idMarca"), "Marca", errors);
-    const idUbicacion = validateRequiredId(formData.get("idUbicacion"), "Ubicacion", errors);
-    const idColorPrincipal = validateRequiredId(formData.get("idColorPrincipal"), "Color principal", errors);
+    const idTipo = validateOptionalId(formData.get("idTipo"), "Tipo", errors);
+    const idMarca = validateOptionalId(formData.get("idMarca"), "Marca", errors);
+    const idUbicacion = validateOptionalId(formData.get("idUbicacion"), "Ubicacion", errors);
+    const idColorPrincipal = validateOptionalId(formData.get("idColorPrincipal"), "Color principal", errors);
     const idCorte = validateOptionalId(formData.get("idCorte"), "Corte", errors);
     const idTejido = validateOptionalId(formData.get("idTejido"), "Tejido", errors);
     const idEstampado = validateOptionalId(formData.get("idEstampado"), "Estampado", errors);
     const idColorSecundario = validateOptionalId(formData.get("idColorSecundario"), "Color secundario", errors);
     const detalles = validateStringLength(formData.get("detalles"), MAX_DETALLES_LENGTH, "Notas", errors);
+    const nombre = validateStringLength(formData.get("nombre"), MAX_NOMBRE_LENGTH, "Nombre", errors);
 
     await verifyIdExists(idTipo, prisma.dimTipoPrenda, "Tipo", errors);
     await verifyIdExists(idMarca, prisma.dimMarca, "Marca", errors);
@@ -121,16 +121,17 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
     }
 
     const data = {
-      idTipo: idTipo!,
+      idTipo,
       idCorte,
       idTejido,
-      idMarca: idMarca!,
-      idUbicacion: idUbicacion!,
+      idMarca,
+      idUbicacion,
       idEstampado,
-      idColorPrincipal: idColorPrincipal!,
+      idColorPrincipal,
       idColorSecundario,
       urlImagen: finalUrl || null,
       detalles,
+      nombre,
     };
 
     await prisma.fPrenda.create({ data });
@@ -164,15 +165,16 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
       urlImagen = toProxyUrl(blob.url);
     }
 
-    const idTipo = validateRequiredId(formData.get("idTipo"), "Tipo", errors);
-    const idMarca = validateRequiredId(formData.get("idMarca"), "Marca", errors);
-    const idUbicacion = validateRequiredId(formData.get("idUbicacion"), "Ubicacion", errors);
-    const idColorPrincipal = validateRequiredId(formData.get("idColorPrincipal"), "Color principal", errors);
+    const idTipo = validateOptionalId(formData.get("idTipo"), "Tipo", errors);
+    const idMarca = validateOptionalId(formData.get("idMarca"), "Marca", errors);
+    const idUbicacion = validateOptionalId(formData.get("idUbicacion"), "Ubicacion", errors);
+    const idColorPrincipal = validateOptionalId(formData.get("idColorPrincipal"), "Color principal", errors);
     const idCorte = validateOptionalId(formData.get("idCorte"), "Corte", errors);
     const idTejido = validateOptionalId(formData.get("idTejido"), "Tejido", errors);
     const idEstampado = validateOptionalId(formData.get("idEstampado"), "Estampado", errors);
     const idColorSecundario = validateOptionalId(formData.get("idColorSecundario"), "Color secundario", errors);
     const detalles = validateStringLength(formData.get("detalles"), MAX_DETALLES_LENGTH, "Notas", errors);
+    const nombre = validateStringLength(formData.get("nombre"), MAX_NOMBRE_LENGTH, "Nombre", errors);
 
     await verifyIdExists(idTipo, prisma.dimTipoPrenda, "Tipo", errors);
     await verifyIdExists(idMarca, prisma.dimMarca, "Marca", errors);
@@ -188,16 +190,17 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
     }
 
     const data = {
-      idTipo: idTipo!,
+      idTipo,
       idCorte,
       idTejido,
-      idMarca: idMarca!,
-      idUbicacion: idUbicacion!,
+      idMarca,
+      idUbicacion,
       idEstampado,
-      idColorPrincipal: idColorPrincipal!,
+      idColorPrincipal,
       idColorSecundario,
       urlImagen,
       detalles,
+      nombre,
     };
 
     await prisma.fPrenda.update({ where: { id }, data });
@@ -308,8 +311,8 @@ export async function getDashboard() {
 
   const data: DashboardData = {};
   for (const p of prendas) {
-    const tipo = p.tipo.nombre;
-    const ubi = p.ubicacion.nombre;
+    const tipo = p.tipo?.nombre ?? "Sin tipo";
+    const ubi = p.ubicacion?.nombre ?? "Sin ubicacion";
     if (!data[tipo]) data[tipo] = {};
     data[tipo][ubi] = (data[tipo][ubi] || 0) + 1;
   }

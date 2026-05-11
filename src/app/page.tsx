@@ -10,8 +10,8 @@ export default async function Home() {
     getDashboard(),
   ]);
 
-  const madridId = dimensiones.ubicaciones.find((u) => u.nombre === "Madrid")!.id;
-  const valladolidId = dimensiones.ubicaciones.find((u) => u.nombre === "Valladolid")!.id;
+  const madridId = dimensiones.ubicaciones.find((u) => u.nombre === "Madrid")?.id ?? 0;
+  const valladolidId = dimensiones.ubicaciones.find((u) => u.nombre === "Valladolid")?.id ?? 0;
 
   const prendasMadrid = prendas.filter((p) => p.idUbicacion === madridId);
   const prendasValladolid = prendas.filter((p) => p.idUbicacion === valladolidId);
