@@ -106,6 +106,7 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
     const idEstampado = validateOptionalId(formData.get("idEstampado"), "Estampado", errors);
     const idColorSecundario = validateOptionalId(formData.get("idColorSecundario"), "Color secundario", errors);
     const detalles = validateStringLength(formData.get("detalles"), MAX_DETALLES_LENGTH, "Notas", errors);
+    const nombre = validateStringLength(formData.get("nombre"), MAX_NOMBRE_LENGTH, "Nombre", errors);
 
     await verifyIdExists(idTipo, prisma.dimTipoPrenda, "Tipo", errors);
     await verifyIdExists(idMarca, prisma.dimMarca, "Marca", errors);
@@ -131,6 +132,7 @@ export async function crearPrenda(formData: FormData): Promise<ActionResult> {
       idColorSecundario,
       urlImagen: finalUrl || null,
       detalles,
+      nombre,
     };
 
     await prisma.fPrenda.create({ data });
@@ -173,6 +175,7 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
     const idEstampado = validateOptionalId(formData.get("idEstampado"), "Estampado", errors);
     const idColorSecundario = validateOptionalId(formData.get("idColorSecundario"), "Color secundario", errors);
     const detalles = validateStringLength(formData.get("detalles"), MAX_DETALLES_LENGTH, "Notas", errors);
+    const nombre = validateStringLength(formData.get("nombre"), MAX_NOMBRE_LENGTH, "Nombre", errors);
 
     await verifyIdExists(idTipo, prisma.dimTipoPrenda, "Tipo", errors);
     await verifyIdExists(idMarca, prisma.dimMarca, "Marca", errors);
@@ -198,6 +201,7 @@ export async function editarPrenda(id: number, formData: FormData): Promise<Acti
       idColorSecundario,
       urlImagen,
       detalles,
+      nombre,
     };
 
     await prisma.fPrenda.update({ where: { id }, data });
