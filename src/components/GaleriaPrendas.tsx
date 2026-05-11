@@ -644,7 +644,7 @@ export default function GaleriaPrendas({
           sortBy={sortBy} setSortBy={setSortBy} onExport={exportCSV} />
       )}
       {showForm && (
-        <FormularioPrenda dimensiones={dimensiones} prenda={editPrenda} ubicacionId={editPrenda ? editPrenda.idUbicacion : preselectedUbicacion}
+        <FormularioPrenda dimensiones={dimensiones} prenda={editPrenda} ubicacionId={editPrenda ? (editPrenda.idUbicacion ?? preselectedUbicacion) : preselectedUbicacion}
           onClose={() => { setShowForm(false); setEditPrenda(null); }} />
       )}
     </div>
