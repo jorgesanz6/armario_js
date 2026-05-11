@@ -108,11 +108,11 @@ function DetallePrenda({
       <div className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-card shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {prenda.urlImagen && (
           <div className="relative aspect-square bg-muted">
-            <Image src={prenda.urlImagen} alt={prenda.tipo.nombre} fill className="object-cover" sizes="400px" />
+            <Image src={prenda.urlImagen} alt={prenda.nombre || prenda.tipo.nombre} fill className="object-cover" sizes="400px" />
           </div>
         )}
         <div className="p-4">
-          <h3 className="text-lg font-semibold text-card-foreground">{prenda.tipo.nombre} — {prenda.marca.nombre}</h3>
+          <h3 className="text-lg font-semibold text-card-foreground">{prenda.nombre || `${prenda.tipo.nombre} — ${prenda.marca.nombre}`}</h3>
           <div className="mt-2 flex flex-wrap gap-1">
             {etiquetas.map((e) => (
               <span key={e} className="inline-block rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{e}</span>
@@ -324,7 +324,7 @@ const PrendaCard = React.memo(function PrendaCard({ prenda, destinoId, onMover, 
             <path d="m1.5 1.5 21 21m-2.1-5.56L15.75 9.3V5.25a.75.75 0 0 0-.75-.75H9.75a.75.75 0 0 0-.75.75v.005L5.06 1.32A.75.75 0 0 1 5.25 1.5h13.5a.75.75 0 0 1 .75.75v13.5c0 .14-.04.278-.1.39ZM3.68 5.32 1.5 3.14m0 0L3.68 5.32m0 0a.75.75 0 0 0-.18.48v13.5a.75.75 0 0 0 .75.75h13.5c.18 0 .344-.063.473-.168M1.5 3.14l2.18 2.18" />
           </svg>
         )}
-        <span className="text-sm font-medium text-card-foreground truncate">{prenda.tipo.nombre}</span>
+        <span className="text-sm font-medium text-card-foreground truncate">{prenda.nombre || prenda.tipo.nombre}</span>
       </div>
       <span className="text-xs text-muted-foreground shrink-0">{prenda.marca.nombre}</span>
     </button>
@@ -402,7 +402,7 @@ export default function GaleriaPrendas({
     if (searchText.trim()) {
       const q = searchText.toLowerCase();
       result = result.filter((p) =>
-        p.tipo.nombre.toLowerCase().includes(q) || p.marca.nombre.toLowerCase().includes(q)
+        (p.nombre?.toLowerCase().includes(q) ?? false) || p.tipo.nombre.toLowerCase().includes(q) || p.marca.nombre.toLowerCase().includes(q)
       );
     }
     const sorted = [...result];
@@ -456,9 +456,10 @@ export default function GaleriaPrendas({
 
   function exportCSV() {
     const all = [...prendasMadrid, ...prendasValladolid, ...prendasTransito];
-    const header = "Tipo,Marca,Color,Corte,Tejido,Estampado,Ubicacion,Detalles";
+    const header = "Nombre,Tipo,Marca,Color,Corte,Tejido,Estampado,Ubicacion,Detalles";
     const rows = all.map((p) =>
       [
+        `"${p.nombre?.replace(/"/g, '""') ?? ""}"`,
         p.tipo.nombre, p.marca.nombre, p.colorPrincipal.nombre,
         p.corte?.nombre ?? "", p.tejido?.nombre ?? "",
         p.estampado?.nombre ?? "", p.ubicacion.nombre,
