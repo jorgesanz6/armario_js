@@ -76,6 +76,7 @@ model FPrenda {
   idColorSecundario Int?          @map("ID_Color_Secundario")
   urlImagen        String?        @map("URL_Imagen")
   detalles         String?        @map("Detalles")
+  nombre           String?        @map("Nombre")
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
